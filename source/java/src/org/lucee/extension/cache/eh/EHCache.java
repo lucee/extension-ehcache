@@ -73,8 +73,7 @@ public class EHCache extends EHCacheSupport {
 	private String cacheName;
 	private CacheManager manager;
 	private ClassLoader classLoader;
-
-
+	
 	public static void init(Config config,String[] cacheNames,Struct[] arguments) throws IOException, PageException, RuntimeException {
 		System.setProperty("net.sf.ehcache.enableShutdownHook", "true");
 		Thread.currentThread().setContextClassLoader(config.getClassLoader());
@@ -133,7 +132,6 @@ public class EHCache extends EHCacheSupport {
 			hash=CFMLEngineFactory.getInstance().getSystemUtil().hashMd5(xml);
 			
 			moveData(dir,hashArg,cacheNames,arguments);
-			//print.e(xml);
 			Charset charset = CFMLEngineFactory.getInstance().getCastUtil().toCharset("UTF-8");
 			Configuration conf = ConfigurationFactory.parseConfiguration(new ByteArrayInputStream(xml.getBytes(charset)));
 			conf.setName("ehcache_"+config.getIdentification().getId());
@@ -196,6 +194,7 @@ public class EHCache extends EHCacheSupport {
 	}
 
 	private static void moveData(Resource dir, String cacheName, Resource trg) {
+		cacheName=improveCacheName(cacheName);
 		Resource[] dirs = dir.listResources();
 		Resource index,data;
 		// move 
@@ -215,10 +214,21 @@ public class EHCache extends EHCacheSupport {
 		}
 	}
 	
+	private static String improveCacheName(String cacheName) {
+		if(cacheName.equalsIgnoreCase("default"))
+			return "___default___";
+		return cacheName;
+	}
+	private static String label(String cacheName) {
+		if(cacheName.equalsIgnoreCase("___default___"))
+			return "default";
+		return cacheName;
+	}
+
 	private static void deleteData(Resource dir, String[] cacheNames) {
 		Set<String> names=new HashSet<String>();
 		for(int i=0;i<cacheNames.length;i++){
-			names.add(cacheNames[i]);
+			names.add(improveCacheName(cacheNames[i]));
 		}
 		
 		Resource[] dirs = dir.listResources();
@@ -422,7 +432,7 @@ public class EHCache extends EHCacheSupport {
 	}
 
 	private static void createCacheXml(StringBuilder xml, String cacheName, Struct arguments, boolean isDistributed) {
-
+		cacheName=improveCacheName(cacheName);
 		// disk Persistent
 		boolean diskPersistent=toBooleanValue(arguments.get("diskpersistent",Boolean.FALSE),DISK_PERSISTENT);
 		
@@ -509,7 +519,7 @@ public class EHCache extends EHCacheSupport {
 	@Override
 	public void init(Config config,String cacheName, Struct arguments) {
 		this.classLoader=config.getClassLoader();
-		this.cacheName=cacheName;
+		this.cacheName=improveCacheName(cacheName);
 		
 		setClassLoader();
 		Resource hashDir = config.getConfigDir().getRealResource("ehcache").getRealResource(createHash(arguments));
@@ -528,7 +538,7 @@ public class EHCache extends EHCacheSupport {
 			CFMLEngine engine = CFMLEngineFactory.getInstance();
 			Excepton exp = engine.getExceptionUtil();
 			throw exp.createPageRuntimeException(
-					exp.createApplicationException("there is no cache with name ["+cacheName+"]"));
+					exp.createApplicationException("there is no cache with name ["+label(cacheName)+"]"));
 		}
 		return c;
 	}
