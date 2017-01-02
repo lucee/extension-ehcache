@@ -28,8 +28,6 @@ import lucee.commons.io.cache.CachePro;
 import lucee.runtime.type.Struct;
 import net.sf.ehcache.Element;
 import net.sf.ehcache.config.CacheConfiguration;
-import net.sf.ehcache.event.CacheEventListener;
-import net.sf.ehcache.event.RegisteredEventListeners;
 
 public abstract class EHCacheSupport extends CacheSupport implements Cache {
 
@@ -62,10 +60,12 @@ public abstract class EHCacheSupport extends CacheSupport implements Cache {
 	
 	@Override
 	public void put(String key, Object value, Long idleTime, Long liveTime) {
-		Boolean eternal = idleTime==null && liveTime==null?Boolean.TRUE:Boolean.FALSE;
+		boolean hasTime = idleTime!=null || liveTime!=null;
 		Integer idle = idleTime==null?null : new Integer( (int)(idleTime.longValue()/1000) );
 		Integer live = liveTime==null?null : new Integer( (int)(liveTime.longValue()/1000) );
-		getCache().put(new Element(key, value ,eternal, idle, live));
+		
+		if(hasTime)getCache().put(new Element(key, value ,false, idle, live));
+		else getCache().put(new Element(key, value));
 	}
 
 

@@ -186,7 +186,7 @@ public class EHCacheRemote extends CacheSupport {
 
 	@Override
 	public void put(String key, Object value, Long idleTime, Long liveTime) {
-		Boolean eternal = idleTime==null && liveTime==null?Boolean.TRUE:Boolean.FALSE;
+		//Boolean eternal = idleTime==null && liveTime==null?Boolean.TRUE:Boolean.FALSE;
 		Integer idle = idleTime==null?null:new Integer((int)idleTime.longValue()/1000);
 		Integer live = liveTime==null?null:new Integer((int)liveTime.longValue()/1000);
 		try {
@@ -195,9 +195,9 @@ public class EHCacheRemote extends CacheSupport {
 			// TODO make text/plain for string
 			el.setMimeType("application/x-java-serialized-object");
 			el.setValue(Converter.toBytes(value));
-			el.setEternal(eternal);
-			el.setTimeToIdleSeconds(idle);
-			el.setTimeToLiveSeconds(live);
+			//el.setEternal(eternal);
+			if(idle!=null)el.setTimeToIdleSeconds(idle);
+			if(live!=null)el.setTimeToLiveSeconds(live);
 		
 			soap.put(name,el);
 		} catch (Throwable t) {
