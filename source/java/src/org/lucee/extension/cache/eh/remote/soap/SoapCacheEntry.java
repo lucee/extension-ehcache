@@ -96,6 +96,7 @@ public class SoapCacheEntry implements CacheEntry {
 	    return CFMLEngineFactory.getInstance().getIOUtil().toString(bais,(Charset)null);
 		}
 		catch(Throwable t){
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			return null;
 		}
 	}

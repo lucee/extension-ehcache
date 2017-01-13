@@ -101,7 +101,8 @@ public class EHCacheRemote extends CacheSupport {
 		try {
 			return soap.getKeysWithExpiryCheck(name);
 		} 
-		catch (Throwable t) {
+		catch(Throwable t) {
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			throw new RuntimeException(t);
 		}
 	}
@@ -122,7 +123,8 @@ public class EHCacheRemote extends CacheSupport {
 		try {
 			return soap.getQuiet(name, key);
 		} 
-		catch (Throwable t) {
+		catch(Throwable t) {
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			return defaultValue;
 		}
 	}
@@ -142,7 +144,8 @@ public class EHCacheRemote extends CacheSupport {
 		try {
 			return soap.get(name, key);
 		} 
-		catch (Throwable t) {
+		catch(Throwable t) {
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			return defaultValue;
 		}
 	}
@@ -164,7 +167,7 @@ public class EHCacheRemote extends CacheSupport {
 			info.setEL("name", conf.getName());
 		}
 		catch(Throwable t){
-			//print.printST(t);
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 		}
 		
 		return info;
@@ -200,7 +203,8 @@ public class EHCacheRemote extends CacheSupport {
 			if(live!=null)el.setTimeToLiveSeconds(live);
 		
 			soap.put(name,el);
-		} catch (Throwable t) {
+		} catch(Throwable t) {
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			throw new RuntimeException(t);
 		}
 		

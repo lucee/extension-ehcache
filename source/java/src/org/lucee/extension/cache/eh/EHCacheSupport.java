@@ -81,7 +81,8 @@ public abstract class EHCacheSupport extends CacheSupport implements Cache {
 	public CacheEntry getQuiet(String key, CacheEntry defaultValue){
 		try {
 			return new EHCacheEntry(getCache().getQuiet(key));
-		} catch (Throwable t) {
+		} catch(Throwable t) {
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			return defaultValue;
 		}
 	}

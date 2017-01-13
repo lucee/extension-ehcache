@@ -202,6 +202,7 @@ public class CacheFactory extends DefaultHandler {
 			return Double.parseDouble(str);
 		}
 		catch(Throwable t){
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			return defaultValue;
 		}
 	}
@@ -210,6 +211,7 @@ public class CacheFactory extends DefaultHandler {
 			return Integer.parseInt(str);
 		}
 		catch(Throwable t){
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			return defaultValue;
 		}
 	}
