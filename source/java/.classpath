@@ -12,6 +12,6 @@
 	<classpathentry kind="lib" path="libs/org.lucee.axis-1.4.0.jar"/>
 	<classpathentry kind="lib" path="libs/org.lucee.axis.ant-1.4.0.jar"/>
 	<classpathentry kind="lib" path="libs/lucee.jar"/>
-	<classpathentry kind="lib" path="libs/org.lucee.ehcache-2.10.1.jar"/>
+	<classpathentry kind="lib" path="libs/org.lucee.ehcache-2.10.3.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
