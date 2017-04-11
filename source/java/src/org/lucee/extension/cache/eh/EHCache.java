@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.lucee.extension.cache.util.print;
-
 import lucee.commons.io.cache.CacheEntry;
 import lucee.commons.io.cache.exp.CacheException;
 import lucee.commons.io.res.Resource;
@@ -81,6 +79,7 @@ public class EHCache extends EHCacheSupport {
 	private ClassLoader classLoader;
 	
 	public static void init(Config config,String[] cacheNames,Struct[] arguments) throws IOException, PageException, RuntimeException {
+
 		System.setProperty("net.sf.ehcache.enableShutdownHook", "true");
 		Thread.currentThread().setContextClassLoader(config.getClassLoader());
 
@@ -115,7 +114,7 @@ public class EHCache extends EHCacheSupport {
 				while(it.hasNext()){
 					entry= it.next();
 					if(entry.getKey().toString().startsWith(dir.getAbsolutePath())){
-						entry.getValue().manager.shutdown();
+						entry.getValue().shutdown();
 					}
 					else newManagers.put(entry.getKey(), entry.getValue());
 					
@@ -142,7 +141,7 @@ public class EHCache extends EHCacheSupport {
 			Charset charset = CFMLEngineFactory.getInstance().getCastUtil().toCharset("UTF-8");
 			Configuration conf = ConfigurationFactory.parseConfiguration(new ByteArrayInputStream(xml.getBytes(charset)));
 			conf.setName("ehcache_"+config.getIdentification().getId());
-			CacheManagerAndHash m = new CacheManagerAndHash(CacheManager.newInstance(conf),hash);
+			CacheManagerAndHash m = new CacheManagerAndHash(conf,hash);
 			newManagers.put(hashDir.getAbsolutePath(), m);
 		}
 		
@@ -155,10 +154,22 @@ public class EHCache extends EHCacheSupport {
 		Entry<String, CacheManagerAndHash> entry;
 		while(it.hasNext()){
 			entry = it.next();
-			CacheManager manager=entry.getValue().manager;
-			names = manager.getCacheNames();
-			for(int i=0;i<names.length;i++){
-				manager.getCache(names[i]).flush();
+			CacheManagerAndHash cmah = entry.getValue();
+			CacheManager manager=cmah.getInstance(false);
+			boolean alreadyLoaded=true;
+			if(manager==null){
+				// not loaded yet
+				alreadyLoaded=false;
+				manager=cmah.getInstance(true);
+			}
+			try {
+				names = manager.getCacheNames();
+				for(int i=0;i<names.length;i++){
+					manager.getCache(names[i]).flush();
+				}
+			}
+			finally {
+				if(!alreadyLoaded)cmah.shutdown();
 			}
 		}
 	}
@@ -530,12 +541,13 @@ public class EHCache extends EHCacheSupport {
 		
 		setClassLoader();
 		Resource hashDir = config.getConfigDir().getRealResource("ehcache").getRealResource(createHash(arguments));
-		manager =managers.get(hashDir.getAbsolutePath()).manager;
+		manager =managers.get(hashDir.getAbsolutePath()).getInstance(true);
 	}
 	
 	public void release() {
 		if(manager!=null) manager.shutdown();
 	}
+	
 	protected void finalize() {
 		release();
 	}
@@ -702,24 +714,38 @@ public class EHCache extends EHCacheSupport {
 	}
 	
 
-}class CacheManagerAndHash {
+}
+	class CacheManagerAndHash {
 
-		CacheManager manager;
+		Configuration conf;
 		String hash;
+		private CacheManager _manager;
 
-		public CacheManagerAndHash(CacheManager manager, String hash) {
-			this.manager=manager;
-			
+		public CacheManagerAndHash(Configuration conf, String hash) {
+			this.conf=conf;
 			this.hash=hash;
 		}
-		
+
+		public CacheManager getInstance(boolean createIfNecessary) {
+			if(createIfNecessary && _manager==null)
+				_manager=CacheManager.newInstance(conf);
+			return _manager;
+		}
+
+		public void shutdown() {
+			if(_manager!=null) {
+				CacheManager m = _manager;
+				_manager=null;
+				m.shutdown();
+			}
+		}
 	}
 
-class DataFiter implements ResourceNameFilter {
-
-	@Override
-	public boolean accept(Resource parent, String name) {
-		return name.endsWith(".data");
+	class DataFiter implements ResourceNameFilter {
+	
+		@Override
+		public boolean accept(Resource parent, String name) {
+			return name.endsWith(".data");
+		}
+	
 	}
-
-}
