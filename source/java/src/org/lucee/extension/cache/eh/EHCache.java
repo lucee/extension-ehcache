@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.lucee.extension.cache.util.print;
+
 import lucee.commons.io.cache.CacheEntry;
 import lucee.commons.io.cache.exp.CacheException;
 import lucee.commons.io.res.Resource;
@@ -47,6 +49,10 @@ import net.sf.ehcache.config.Configuration;
 import net.sf.ehcache.config.ConfigurationFactory;
 
 public class EHCache extends EHCacheSupport {
+	
+	static {
+		System.setProperty("net.sf.ehcache.enableShutdownHook", "true");
+	}
 	
 	private static final boolean DISK_PERSISTENT = true;
 	private static final boolean ETERNAL = false;
@@ -95,6 +101,7 @@ public class EHCache extends EHCacheSupport {
 			CacheManagerAndHash manager= managers.remove(hashArgs[i]);
 			if(manager!=null && manager.hash.equals(hash)) {
 				newManagers.put(hashArgs[i], manager);
+				
 			}	
 			else mapXML.put(hashArgs[i], xml);
 		}
@@ -524,7 +531,16 @@ public class EHCache extends EHCacheSupport {
 		setClassLoader();
 		Resource hashDir = config.getConfigDir().getRealResource("ehcache").getRealResource(createHash(arguments));
 		manager =managers.get(hashDir.getAbsolutePath()).manager;
-	} 
+	}
+	
+	public void release() {
+		if(manager!=null) manager.shutdown();
+	}
+	protected void finalize() {
+		release();
+	}
+	
+	
 
 	private void setClassLoader() {
 		if(classLoader!=Thread.currentThread().getContextClassLoader())
