@@ -29,6 +29,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.lucee.extension.cache.eh.util.CacheUtil;
+import org.lucee.extension.cache.util.print;
+
 import lucee.commons.io.cache.CacheEntry;
 import lucee.commons.io.cache.exp.CacheException;
 import lucee.commons.io.res.Resource;
@@ -43,8 +46,13 @@ import lucee.runtime.util.Excepton;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
+import net.sf.ehcache.Status;
 import net.sf.ehcache.config.Configuration;
 import net.sf.ehcache.config.ConfigurationFactory;
+import net.sf.ehcache.distribution.RMIBootstrapCacheLoaderFactory;
+import net.sf.ehcache.distribution.RMICacheManagerPeerListenerFactory;
+import net.sf.ehcache.distribution.RMICacheManagerPeerProviderFactory;
+import net.sf.ehcache.distribution.RMICacheReplicatorFactory;
 
 public class EHCache extends EHCacheSupport {
 	
@@ -75,13 +83,14 @@ public class EHCache extends EHCacheSupport {
 	private int hits;
 	private int misses;
 	private String cacheName;
-	private CacheManager manager;
+	private CacheManagerAndHash manAndHash;
 	private ClassLoader classLoader;
 	
 	public static void init(Config config,String[] cacheNames,Struct[] arguments) throws IOException, PageException, RuntimeException {
-
+		
 		System.setProperty("net.sf.ehcache.enableShutdownHook", "true");
-		Thread.currentThread().setContextClassLoader(config.getClassLoader());
+		Thread.currentThread().setContextClassLoader(CacheUtil.getClassLoaderEnv(config));
+    	//Thread.currentThread().setContextClassLoader(config.getClassLoader());
 
 		Resource dir = config.getConfigDir().getRealResource("ehcache"),hashDir;
 		if(!dir.isDirectory())dir.createDirectory(true);
@@ -89,35 +98,32 @@ public class EHCache extends EHCacheSupport {
 		
 		// create all xml
 		HashMap<String,String> mapXML = new HashMap<String,String>();
-		HashMap<String,CacheManagerAndHash> newManagers = new HashMap<String,CacheManagerAndHash>();
-		for(int i=0;i<hashArgs.length;i++){
-			if(mapXML.containsKey(hashArgs[i])) continue;
-			
-			hashDir=dir.getRealResource(hashArgs[i]);
-			String xml=createXML(hashDir.getAbsolutePath(), cacheNames,arguments,hashArgs,hashArgs[i]);
-			String hash=CFMLEngineFactory.getInstance().getSystemUtil().hashMd5(xml);
-			
-			CacheManagerAndHash manager= managers.remove(hashArgs[i]);
-			if(manager!=null && manager.hash.equals(hash)) {
-				newManagers.put(hashArgs[i], manager);
-				
-			}	
-			else mapXML.put(hashArgs[i], xml);
-		}
-		
-		// shutdown all existing managers that have changed
 		{
-			Iterator<Entry<String, CacheManagerAndHash>> it = managers.entrySet().iterator();
-			Entry<String, CacheManagerAndHash> entry;
-			synchronized(managers){
-				it = managers.entrySet().iterator();
-				while(it.hasNext()){
-					entry= it.next();
-					if(entry.getKey().toString().startsWith(dir.getAbsolutePath())){
-						entry.getValue().shutdown();
+			HashMap<String,CacheManagerAndHash> newManagers = new HashMap<String,CacheManagerAndHash>();
+			for(int i=0;i<hashArgs.length;i++){
+				if(mapXML.containsKey(hashArgs[i])) continue;
+				
+				hashDir=dir.getRealResource(hashArgs[i]);
+				String xml=createXML(hashDir.getAbsolutePath(), cacheNames,arguments,hashArgs,hashArgs[i]);
+				String hash=CFMLEngineFactory.getInstance().getSystemUtil().hashMd5(xml);
+				
+				CacheManagerAndHash manager= managers.remove(hashDir.getAbsolutePath());
+				boolean add=true;
+				if(manager!=null) {
+					if(manager.hash.equals(hash)) {
+						add=false;
+						newManagers.put(hashDir.getAbsolutePath(), manager);
 					}
-					else newManagers.put(entry.getKey(), entry.getValue());
-					
+					manager.shutdown();
+				}	
+				if(add) mapXML.put(hashArgs[i], xml);
+			}
+			
+			// shutdown all existing managers that have changed and are no longer used
+			{
+				Iterator<CacheManagerAndHash> it = managers.values().iterator();
+				while(it.hasNext()){
+					it.next().shutdown();
 				}
 				managers=newManagers;
 			}
@@ -126,6 +132,7 @@ public class EHCache extends EHCacheSupport {
 		Iterator<Entry<String, String>> it = mapXML.entrySet().iterator();
 		Entry<String, String> entry;
 		String xml,hashArg,hash;
+		final Charset charset = CFMLEngineFactory.getInstance().getCastUtil().toCharset("UTF-8");
 		while(it.hasNext()){
 			entry = it.next();
 			hashArg=entry.getKey();
@@ -138,11 +145,10 @@ public class EHCache extends EHCacheSupport {
 			hash=CFMLEngineFactory.getInstance().getSystemUtil().hashMd5(xml);
 			
 			moveData(dir,hashArg,cacheNames,arguments);
-			Charset charset = CFMLEngineFactory.getInstance().getCastUtil().toCharset("UTF-8");
 			Configuration conf = ConfigurationFactory.parseConfiguration(new ByteArrayInputStream(xml.getBytes(charset)));
 			conf.setName("ehcache_"+config.getIdentification().getId());
 			CacheManagerAndHash m = new CacheManagerAndHash(conf,hash);
-			newManagers.put(hashDir.getAbsolutePath(), m);
+			managers.put(hashDir.getAbsolutePath(), m);
 		}
 		
 		clean(dir);
@@ -351,7 +357,7 @@ public class EHCache extends EHCacheSupport {
 			// provider
 			isDistributed=true;
 			xml.append("<cacheManagerPeerProviderFactory \n");
-			xml.append(" class=\"net.sf.ehcache.distribution.RMICacheManagerPeerProviderFactory\"\n ");
+			xml.append(" class=\""+RMICacheManagerPeerProviderFactory.class.getName()+"\"\n ");
 			String add = global.get("automatic_addional","").toString().trim();
 			String hostName=global.get("automatic_hostName","").toString().trim().toLowerCase();
 			if(!Util.isEmpty(hostName)) add+=",hostName="+hostName;
@@ -366,7 +372,7 @@ public class EHCache extends EHCacheSupport {
 			//hostName=fully_qualified_hostname_or_ip,
 			
 			// listener
-			xml.append("<cacheManagerPeerListenerFactory class=\"net.sf.ehcache.distribution.RMICacheManagerPeerListenerFactory\"/>\n");
+			xml.append("<cacheManagerPeerListenerFactory class=\" "+RMICacheManagerPeerListenerFactory.class.getName()+"\"/>\n");
 			
 		}
 		// Manual
@@ -374,7 +380,7 @@ public class EHCache extends EHCacheSupport {
 			// provider
 			isDistributed=true;
 			xml.append("<cacheManagerPeerProviderFactory");
-			xml.append(" class=\"net.sf.ehcache.distribution.RMICacheManagerPeerProviderFactory\" ");
+			xml.append(" class=\""+RMICacheManagerPeerProviderFactory.class.getName()+"\" ");
 			String add = global.get("manual_addional","").toString().trim();
 			if(!Util.isEmpty(add) && !add.startsWith(","))add=","+add;
 			add=add.replace('\n', ' ');
@@ -395,7 +401,7 @@ public class EHCache extends EHCacheSupport {
 				add(sb,"socketTimeoutMillis="+socketTimeoutMillis);
 			
 			xml.append("<cacheManagerPeerListenerFactory"); 
-			xml.append(" class=\"net.sf.ehcache.distribution.RMICacheManagerPeerListenerFactory\""); 
+			xml.append(" class=\""+RMICacheManagerPeerListenerFactory.class.getName()+"\""); 
 			if(sb.length()>0)xml.append(" properties=\""+sb+"\""); 
 			xml.append("/>\n");
 			
@@ -502,7 +508,7 @@ public class EHCache extends EHCacheSupport {
 		if(isDistributed){
 			xml.append(" <cacheEventListenerFactory \n");
 			//xml.append(" class=\"net.sf.ehcache.distribution.RMICacheReplicatorFactory\" ");
-			xml.append(" class=\""+LuceeRMICacheReplicatorFactory.class.getName()+"\" \n");
+			xml.append(" class=\""+RMICacheReplicatorFactory.class.getName()+"\" \n");
 			
 			xml.append(" properties=\"replicateAsynchronously="+replicateAsynchronously+
 					", asynchronousReplicationIntervalMillis="+asynchronousReplicationInterval+
@@ -517,7 +523,7 @@ public class EHCache extends EHCacheSupport {
 			// BootStrap
 			if(toBooleanValue(arguments.get("bootstrapType","false"),false)){
 				xml.append("<bootstrapCacheLoaderFactory \n");
-				xml.append("	class=\"net.sf.ehcache.distribution.RMIBootstrapCacheLoaderFactory\" \n");
+				xml.append("	class=\""+RMIBootstrapCacheLoaderFactory.class.getName()+"\" \n");
 				xml.append("	properties=\"bootstrapAsynchronously="+toBooleanValue(arguments.get("bootstrapAsynchronously","true"),true)+
 						", maximumChunkSizeBytes="+toLongValue(arguments.get("maximumChunkSizeBytes","5000000"),5000000L)+"\" \n");
 				xml.append("	propertySeparator=\",\" /> \n");
@@ -530,22 +536,26 @@ public class EHCache extends EHCacheSupport {
 		
 	}
 
-	public void init(String cacheName, Struct arguments) {
+	public void init(String cacheName, Struct arguments) throws IOException {
 		init(CFMLEngineFactory.getInstance().getThreadConfig(),cacheName, arguments);
 	}
 	
 	@Override
-	public void init(Config config,String cacheName, Struct arguments) {
-		this.classLoader=config.getClassLoader();
+	public void init(Config config,String cacheName, Struct arguments) throws IOException {
+		try {
+			this.classLoader=CacheUtil.getClassLoaderEnv(config);
+		} catch (PageException pe) {
+			throw CFMLEngineFactory.getInstance().getExceptionUtil().toIOException(pe);
+		}
 		this.cacheName=improveCacheName(cacheName);
 		
 		setClassLoader();
 		Resource hashDir = config.getConfigDir().getRealResource("ehcache").getRealResource(createHash(arguments));
-		manager =managers.get(hashDir.getAbsolutePath()).getInstance(true);
+		manAndHash =managers.get(hashDir.getAbsolutePath());
 	}
 	
 	public void release() {
-		if(manager!=null) manager.shutdown();
+		if(manAndHash!=null) manAndHash.shutdown();
 	}
 	
 	protected void finalize() {
@@ -561,12 +571,14 @@ public class EHCache extends EHCacheSupport {
 
 	protected net.sf.ehcache.Cache getCache() {
 		setClassLoader();
-		Cache c = manager.getCache(cacheName);
+		Cache c = manAndHash.getInstance(true).getCache(cacheName);
 		if(c==null){
+			CacheManager cm = manAndHash.getInstance(false);
 			CFMLEngine engine = CFMLEngineFactory.getInstance();
 			Excepton exp = engine.getExceptionUtil();
 			throw exp.createPageRuntimeException(
-					exp.createApplicationException("there is no cache with name ["+label(cacheName)+"]"));
+					exp.createApplicationException("there is no cache with name ["+label(cacheName)+"], available caches are ["+
+			CFMLEngineFactory.getInstance().getListUtil().toList(cm==null?new String[]{}:cm.getCacheNames(), ", ")+"]"));
 		}
 		return c;
 	}
@@ -725,10 +737,17 @@ public class EHCache extends EHCacheSupport {
 			this.conf=conf;
 			this.hash=hash;
 		}
-
+		
 		public CacheManager getInstance(boolean createIfNecessary) {
-			if(createIfNecessary && _manager==null)
-				_manager=CacheManager.newInstance(conf);
+			if(_manager==null) {
+				if(createIfNecessary)
+					_manager=CacheManager.newInstance(conf);
+			}
+			else {
+				// This should never happen, but anyway, we simply make sure
+				if(_manager.getStatus().equals(Status.STATUS_SHUTDOWN))
+					_manager=CacheManager.newInstance(conf);
+			}
 			return _manager;
 		}
 
