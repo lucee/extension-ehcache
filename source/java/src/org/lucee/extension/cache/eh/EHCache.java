@@ -49,7 +49,6 @@ import net.sf.ehcache.Element;
 import net.sf.ehcache.Status;
 import net.sf.ehcache.config.Configuration;
 import net.sf.ehcache.config.ConfigurationFactory;
-import net.sf.ehcache.distribution.RMIBootstrapCacheLoaderFactory;
 import net.sf.ehcache.distribution.RMICacheManagerPeerListenerFactory;
 import net.sf.ehcache.distribution.RMICacheManagerPeerProviderFactory;
 import net.sf.ehcache.distribution.RMICacheReplicatorFactory;
@@ -87,7 +86,7 @@ public class EHCache extends EHCacheSupport {
 	private ClassLoader classLoader;
 	
 	public static void init(Config config,String[] cacheNames,Struct[] arguments) throws IOException, PageException, RuntimeException {
-		
+		net.sf.ehcache.distribution.RMICacheManagerPeerListenerFactory q;
 		System.setProperty("net.sf.ehcache.enableShutdownHook", "true");
 		Thread.currentThread().setContextClassLoader(CacheUtil.getClassLoaderEnv(config));
     	//Thread.currentThread().setContextClassLoader(config.getClassLoader());
@@ -145,9 +144,7 @@ public class EHCache extends EHCacheSupport {
 			hash=CFMLEngineFactory.getInstance().getSystemUtil().hashMd5(xml);
 			
 			moveData(dir,hashArg,cacheNames,arguments);
-			Configuration conf = ConfigurationFactory.parseConfiguration(new ByteArrayInputStream(xml.getBytes(charset)));
-			conf.setName("ehcache_"+config.getIdentification().getId());
-			CacheManagerAndHash m = new CacheManagerAndHash(conf,hash);
+			CacheManagerAndHash m = new CacheManagerAndHash(xml,"ehcache_"+config.getIdentification().getId(),hash);
 			managers.put(hashDir.getAbsolutePath(), m);
 		}
 		
@@ -523,7 +520,7 @@ public class EHCache extends EHCacheSupport {
 			// BootStrap
 			if(toBooleanValue(arguments.get("bootstrapType","false"),false)){
 				xml.append("<bootstrapCacheLoaderFactory \n");
-				xml.append("	class=\""+RMIBootstrapCacheLoaderFactory.class.getName()+"\" \n");
+				xml.append("	class=\""+LuceeRMICacheReplicatorFactory.class.getName()+"\" \n");
 				xml.append("	properties=\"bootstrapAsynchronously="+toBooleanValue(arguments.get("bootstrapAsynchronously","true"),true)+
 						", maximumChunkSizeBytes="+toLongValue(arguments.get("maximumChunkSizeBytes","5000000"),5000000L)+"\" \n");
 				xml.append("	propertySeparator=\",\" /> \n");
@@ -729,30 +726,57 @@ public class EHCache extends EHCacheSupport {
 }
 	class CacheManagerAndHash {
 
-		Configuration conf;
+		//Configuration conf;
 		String hash;
 		private CacheManager _manager;
+		private String xml;
+		private String name;
 
-		public CacheManagerAndHash(Configuration conf, String hash) {
+		/*public CacheManagerAndHash(Configuration conf, String hash, int x) {
 			this.conf=conf;
+			this.hash=hash;
+		}*/
+		
+		public CacheManagerAndHash(String xml, String name, String hash) {
+			this.xml=xml;
+			this.name=name;
 			this.hash=hash;
 		}
 		
+		private Configuration createConfig() {
+			Charset charset;
+			try {
+				charset = CFMLEngineFactory.getInstance().getCastUtil().toCharset("UTF-8");
+			} catch (Exception e) {
+				charset=null;
+			}
+			byte[] barr = charset!=null?xml.getBytes(charset):xml.getBytes();
+			Configuration conf = ConfigurationFactory.parseConfiguration(new ByteArrayInputStream(barr));
+			conf.setName(name);
+			return conf;
+			
+		}
+
 		public CacheManager getInstance(boolean createIfNecessary) {
 			if(_manager==null) {
 				if(createIfNecessary)
-					_manager=CacheManager.newInstance(conf);
+					_manager=CacheManager.newInstance(createConfig());
 			}
 			else {
 				// This should never happen, but anyway, we simply make sure
-				if(_manager.getStatus().equals(Status.STATUS_SHUTDOWN))
-					_manager=CacheManager.newInstance(conf);
+				if(_manager.getStatus().equals(Status.STATUS_SHUTDOWN)) {
+					print.ds("hhhhhhhhhhhhhhh reinit hhhhhhhhhhhhhhhhh");
+					// we need to create a new config because of "	java.lang.IllegalStateException: You cannot share a Configuration instance across multiple running CacheManager instances"
+					_manager=CacheManager.newInstance(createConfig());
+					
+				}
 			}
 			return _manager;
 		}
 
 		public void shutdown() {
 			if(_manager!=null) {
+				print.ds("hhhhhhhhhhhhhhh shutdown hhhhhhhhhhhhhhhhh");
 				CacheManager m = _manager;
 				_manager=null;
 				m.shutdown();
