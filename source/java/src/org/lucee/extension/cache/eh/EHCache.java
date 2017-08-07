@@ -49,6 +49,7 @@ import net.sf.ehcache.Element;
 import net.sf.ehcache.Status;
 import net.sf.ehcache.config.Configuration;
 import net.sf.ehcache.config.ConfigurationFactory;
+import net.sf.ehcache.distribution.RMIBootstrapCacheLoaderFactory;
 import net.sf.ehcache.distribution.RMICacheManagerPeerListenerFactory;
 import net.sf.ehcache.distribution.RMICacheManagerPeerProviderFactory;
 import net.sf.ehcache.distribution.RMICacheReplicatorFactory;
@@ -86,7 +87,6 @@ public class EHCache extends EHCacheSupport {
 	private ClassLoader classLoader;
 	
 	public static void init(Config config,String[] cacheNames,Struct[] arguments) throws IOException, PageException, RuntimeException {
-		net.sf.ehcache.distribution.RMICacheManagerPeerListenerFactory q;
 		System.setProperty("net.sf.ehcache.enableShutdownHook", "true");
 		Thread.currentThread().setContextClassLoader(CacheUtil.getClassLoaderEnv(config));
     	//Thread.currentThread().setContextClassLoader(config.getClassLoader());
@@ -369,7 +369,7 @@ public class EHCache extends EHCacheSupport {
 			//hostName=fully_qualified_hostname_or_ip,
 			
 			// listener
-			xml.append("<cacheManagerPeerListenerFactory class=\" "+RMICacheManagerPeerListenerFactory.class.getName()+"\"/>\n");
+			xml.append("<cacheManagerPeerListenerFactory class=\""+RMICacheManagerPeerListenerFactory.class.getName()+"\"/>\n");
 			
 		}
 		// Manual
@@ -520,7 +520,7 @@ public class EHCache extends EHCacheSupport {
 			// BootStrap
 			if(toBooleanValue(arguments.get("bootstrapType","false"),false)){
 				xml.append("<bootstrapCacheLoaderFactory \n");
-				xml.append("	class=\""+LuceeRMICacheReplicatorFactory.class.getName()+"\" \n");
+				xml.append("	class=\""+RMIBootstrapCacheLoaderFactory.class.getName()+"\" \n");
 				xml.append("	properties=\"bootstrapAsynchronously="+toBooleanValue(arguments.get("bootstrapAsynchronously","true"),true)+
 						", maximumChunkSizeBytes="+toLongValue(arguments.get("maximumChunkSizeBytes","5000000"),5000000L)+"\" \n");
 				xml.append("	propertySeparator=\",\" /> \n");
