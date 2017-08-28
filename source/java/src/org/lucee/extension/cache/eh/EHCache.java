@@ -29,9 +29,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.lucee.extension.cache.eh.util.CacheUtil;
-import org.lucee.extension.cache.util.print;
-
 import lucee.commons.io.cache.CacheEntry;
 import lucee.commons.io.cache.exp.CacheException;
 import lucee.commons.io.res.Resource;
@@ -53,6 +50,8 @@ import net.sf.ehcache.distribution.RMIBootstrapCacheLoaderFactory;
 import net.sf.ehcache.distribution.RMICacheManagerPeerListenerFactory;
 import net.sf.ehcache.distribution.RMICacheManagerPeerProviderFactory;
 import net.sf.ehcache.distribution.RMICacheReplicatorFactory;
+
+import org.lucee.extension.cache.eh.util.CacheUtil;
 
 public class EHCache extends EHCacheSupport {
 	
@@ -765,7 +764,7 @@ public class EHCache extends EHCacheSupport {
 			else {
 				// This should never happen, but anyway, we simply make sure
 				if(_manager.getStatus().equals(Status.STATUS_SHUTDOWN)) {
-					print.ds("hhhhhhhhhhhhhhh reinit hhhhhhhhhhhhhhhhh");
+					//print.ds("hhhhhhhhhhhhhhh reinit hhhhhhhhhhhhhhhhh");
 					// we need to create a new config because of "	java.lang.IllegalStateException: You cannot share a Configuration instance across multiple running CacheManager instances"
 					_manager=CacheManager.newInstance(createConfig());
 					
@@ -776,7 +775,7 @@ public class EHCache extends EHCacheSupport {
 
 		public void shutdown() {
 			if(_manager!=null) {
-				print.ds("hhhhhhhhhhhhhhh shutdown hhhhhhhhhhhhhhhhh");
+				//print.ds("hhhhhhhhhhhhhhh shutdown hhhhhhhhhhhhhhhhh");
 				CacheManager m = _manager;
 				_manager=null;
 				m.shutdown();

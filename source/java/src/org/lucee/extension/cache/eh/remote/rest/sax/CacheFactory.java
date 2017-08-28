@@ -22,15 +22,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 
-import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 
-import org.lucee.xml.XMLUtility;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
+import org.xml.sax.helpers.XMLReaderFactory;
 
 public class CacheFactory extends DefaultHandler {
 	
@@ -76,11 +75,10 @@ public class CacheFactory extends DefaultHandler {
 		Reader r=null;
 		try {
 			InputSource is=new InputSource(in);
-			xmlReader=XMLUtility.createXMLReader(DEFAULT_SAX_PARSER);
+			xmlReader=XMLReaderFactory.createXMLReader();
 			xmlReader.setContentHandler(this);
 			xmlReader.setErrorHandler(this);
 			xmlReader.parse(is);
-			
 		}
 		finally {
 			Util.closeEL(r);

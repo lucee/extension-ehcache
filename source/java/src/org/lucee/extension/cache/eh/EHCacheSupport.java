@@ -20,14 +20,14 @@ package org.lucee.extension.cache.eh;
 
 import java.util.List;
 
-import org.lucee.extension.cache.CacheSupport;
-
 import lucee.commons.io.cache.Cache;
 import lucee.commons.io.cache.CacheEntry;
 import lucee.commons.io.cache.CachePro;
 import lucee.runtime.type.Struct;
 import net.sf.ehcache.Element;
 import net.sf.ehcache.config.CacheConfiguration;
+
+import org.lucee.extension.cache.CacheSupport;
 
 public abstract class EHCacheSupport extends CacheSupport implements Cache {
 

@@ -23,11 +23,11 @@ import java.io.ObjectInputStream;
 import java.nio.charset.Charset;
 import java.util.Date;
 
-import org.lucee.extension.cache.eh.util.CacheUtil;
-
 import lucee.commons.io.cache.CacheEntry;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.type.Struct;
+
+import org.lucee.extension.cache.eh.util.CacheUtil;
 
 public class SoapCacheEntry implements CacheEntry {
 

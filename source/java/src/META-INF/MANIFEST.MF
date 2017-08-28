@@ -9,6 +9,5 @@ Export-Package: org.lucee.extension.cache,
 Bundle-ManifestVersion: 2
 Require-Bundle: org.lucee.ehcache;bundle-version=2.10.3,
  org.lucee.jaxrpc;bundle-version=1.4.0,
- org.lucee.xml;bundle-version=1.0.0.0,
  org.lucee.axis.ant;bundle-version=1.4.0.L0001,
  org.lucee.axis;bundle-version=1.4.0.L0001

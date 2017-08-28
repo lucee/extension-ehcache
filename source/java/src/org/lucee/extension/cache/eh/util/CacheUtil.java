@@ -19,7 +19,6 @@
 package org.lucee.extension.cache.eh.util;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import lucee.commons.io.cache.Cache;

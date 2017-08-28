@@ -27,18 +27,17 @@ import javax.xml.rpc.ServiceException;
 import lucee.commons.io.cache.CacheEntry;
 import lucee.commons.io.cache.CachePro;
 import lucee.loader.engine.CFMLEngineFactory;
+import lucee.runtime.config.Config;
+import lucee.runtime.config.ConfigWeb;
+import lucee.runtime.exp.PageException;
+import lucee.runtime.type.Struct;
+import lucee.runtime.util.Cast;
 
 import org.lucee.extension.cache.CacheSupport;
 import org.lucee.extension.cache.eh.remote.rest.RESTClient;
 import org.lucee.extension.cache.eh.remote.rest.sax.CacheConfiguration;
 import org.lucee.extension.cache.eh.remote.soap.Element;
 import org.lucee.extension.cache.eh.remote.soap.SoapClient;
-
-import lucee.runtime.config.Config;
-import lucee.runtime.config.ConfigWeb;
-import lucee.runtime.exp.PageException;
-import lucee.runtime.type.Struct;
-import lucee.runtime.util.Cast;
 
 public class EHCacheRemote extends CacheSupport {
 

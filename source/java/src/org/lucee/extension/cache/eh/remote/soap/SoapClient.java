@@ -32,10 +32,6 @@ import javax.xml.rpc.encoding.TypeMapping;
 
 import lucee.commons.io.cache.CacheEntry;
 import lucee.loader.engine.CFMLEngineFactory;
-
-import org.lucee.extension.cache.eh.remote.Converter;
-import org.lucee.extension.cache.eh.remote.rest.RESTClient;
-
 import lucee.runtime.util.Cast;
 import lucee.runtime.util.ClassUtil;
 
@@ -44,6 +40,8 @@ import org.apache.axis.client.Call;
 import org.apache.axis.client.Service;
 import org.apache.axis.encoding.ser.BeanDeserializerFactory;
 import org.apache.axis.encoding.ser.BeanSerializerFactory;
+import org.lucee.extension.cache.eh.remote.Converter;
+import org.lucee.extension.cache.eh.remote.rest.RESTClient;
 
 public class SoapClient {
 	//private static QName bool2 = Constants.XSD_BOOLEAN;//new QName("http://www.w3.org/2001/XMLSchema", "boolean");

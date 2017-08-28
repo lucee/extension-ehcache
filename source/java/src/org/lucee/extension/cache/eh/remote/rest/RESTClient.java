@@ -29,10 +29,10 @@ import java.util.Date;
 
 import lucee.commons.io.cache.CacheEntry;
 import lucee.loader.util.Util;
+
 import org.lucee.extension.cache.eh.remote.Converter;
 import org.lucee.extension.cache.eh.remote.rest.sax.CacheFactory;
 import org.lucee.extension.cache.eh.remote.rest.sax.CacheMeta;
-
 import org.xml.sax.SAXException;
 
 public class RESTClient {

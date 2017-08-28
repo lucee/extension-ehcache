@@ -20,11 +20,11 @@ package org.lucee.extension.cache.eh;
 
 import java.util.Date;
 
-import org.lucee.extension.cache.eh.util.CacheUtil;
-
 import lucee.commons.io.cache.CacheEntry;
 import lucee.runtime.type.Struct;
 import net.sf.ehcache.Element;
+
+import org.lucee.extension.cache.eh.util.CacheUtil;
 
 public class EHCacheEntry implements CacheEntry {
 
