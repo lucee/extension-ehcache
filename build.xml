@@ -73,14 +73,14 @@
 
     <echo file="${dist}/extension/META-INF/MANIFEST.MF">Manifest-Version: 1.0
 Built-Date: ${NOW}
-version: "${bundleversion}${build.number}"
+version: "${bundleversion}${build.number}${bundleversionappendix}"
 id: "${id}"
 name: "${label}"
 description: "${description}"
 lucee-core-version: "5.0.0.230"
 start-bundles: false
 release-type: server
-cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bundleversion}${build.number}'}]"
+cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bundleversion}${build.number}${bundleversionappendix}'}]"
 </echo>
   </target>
   
@@ -100,9 +100,9 @@ cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bun
  
     <!-- Put everything in ${build} into .jar file -->
     <jar 
-    	jarfile="${dist}/extension/jars/${filename}-${bundleversion}${build.number}.jar" basedir="${build}"  manifest="${src}/META-INF/MANIFEST.MF">
+    	jarfile="${dist}/extension/jars/${filename}-${bundleversion}${build.number}${bundleversionappendix}.jar" basedir="${build}"  manifest="${src}/META-INF/MANIFEST.MF">
       <manifest>
-        <attribute name="Bundle-Version" value="${bundleversion}${build.number}"/>
+        <attribute name="Bundle-Version" value="${bundleversion}${build.number}${bundleversionappendix}"/>
         <attribute name="Built-Date" value="${NOW}"/>
         <attribute name="Bundle-SymbolicName" value="${bundlename}"/>
 
@@ -122,7 +122,7 @@ cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bun
     <replace haystack="${c2}" needle="{label}" repl="${label}" property="c3"/>
     <replace haystack="${c3}" needle="{desc}" repl="${description}" property="c4"/>
     <replace haystack="${c4}" needle="{bundlename}" repl="${bundlename}" property="c5"/>
-    <replace haystack="${c5}" needle="{bundleversion}" repl="${bundleversion}${build.number}" property="c6"/>
+    <replace haystack="${c5}" needle="{bundleversion}" repl="${bundleversion}${build.number}${bundleversionappendix}" property="c6"/>
     <echo message="${c6}" file="${dist}/extension/context/admin/cdriver/EHCache.cfc"/>
 
 
@@ -151,7 +151,7 @@ cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bun
 
 
     <!-- Zip everything  -->
-     <zip destfile="${dist}/${filename}-${bundleversion}${build.number}.lex">
+     <zip destfile="${dist}/${filename}-${bundleversion}${build.number}${bundleversionappendix}.lex">
         <zipfileset dir="${dist}/extension"/>
     </zip>
 		

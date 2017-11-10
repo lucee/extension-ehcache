@@ -76,7 +76,7 @@ public class EHCache extends EHCacheSupport {
 	private static final boolean REPLICATE_ASYNC = true;
 	private static final int ASYNC_REP_INTERVAL = 1000; 
 	//private static Map managers=new HashMap();
-	private static Map<String,CacheManagerAndHash> managers=new HashMap<String,CacheManagerAndHash>();
+	private static Map<String,Map<String,CacheManagerAndHash>> managersColl=new HashMap<String,Map<String,CacheManagerAndHash>>();
 	
 	//private net.sf.ehcache.Cache cache;
 	private int hits;
@@ -84,15 +84,30 @@ public class EHCache extends EHCacheSupport {
 	private String cacheName;
 	private CacheManagerAndHash manAndHash;
 	private ClassLoader classLoader;
-	
-	public static void init(Config config,String[] cacheNames,Struct[] arguments) throws IOException, PageException, RuntimeException {
+
+	public static void init(Config config,String[] cacheNames,Struct[] arguments) {
+		try {
+			_init(config, cacheNames, arguments);
+		}
+		catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	public static void _init(Config config,String[] cacheNames,Struct[] arguments) throws IOException, PageException {
 		System.setProperty("net.sf.ehcache.enableShutdownHook", "true");
 		Thread.currentThread().setContextClassLoader(CacheUtil.getClassLoaderEnv(config));
     	//Thread.currentThread().setContextClassLoader(config.getClassLoader());
+		
 
+		//print.e("<init>:");
+		//print.e(cacheNames);
+		
 		Resource dir = config.getConfigDir().getRealResource("ehcache"),hashDir;
 		if(!dir.isDirectory())dir.createDirectory(true);
 		String[] hashArgs=createHash(arguments);
+		Map<String, CacheManagerAndHash> _managers = managersColl.get(dir.getAbsolutePath());
 		
 		// create all xml
 		HashMap<String,String> mapXML = new HashMap<String,String>();
@@ -105,27 +120,42 @@ public class EHCache extends EHCacheSupport {
 				String xml=createXML(hashDir.getAbsolutePath(), cacheNames,arguments,hashArgs,hashArgs[i]);
 				String hash=CFMLEngineFactory.getInstance().getSystemUtil().hashMd5(xml);
 				
-				CacheManagerAndHash manager= managers.remove(hashDir.getAbsolutePath());
+				CacheManagerAndHash manager=_managers!=null?_managers.remove(hashArgs[i]):null;
+				//print.e("++++++++"+cacheNames[i]);
+				//print.e(_managers!=null?_managers.keySet():null);
+				
 				boolean add=true;
 				if(manager!=null) {
 					if(manager.hash.equals(hash)) {
 						add=false;
-						newManagers.put(hashDir.getAbsolutePath(), manager);
+						newManagers.put(hashArgs[i], manager);
+						//print.e("keep:"+cacheNames[i]);
 					}
-					manager.shutdown();
+					else {
+						manager.shutdown();
+						//print.e("shutdown:"+cacheNames[i]);
+					}
 				}	
-				if(add) mapXML.put(hashArgs[i], xml);
+				if(add) {
+					mapXML.put(hashArgs[i], xml);
+					//print.e("add:"+cacheNames[i]);
+				}
 			}
 			
 			// shutdown all existing managers that have changed and are no longer used
-			{
-				Iterator<CacheManagerAndHash> it = managers.values().iterator();
+			if(_managers!=null){
+				Iterator<CacheManagerAndHash> it = _managers.values().iterator();
+				CacheManagerAndHash cmah;
 				while(it.hasNext()){
-					it.next().shutdown();
+					cmah = it.next();
+					cmah.shutdown();
+					//print.e("remove:"+cmah.name);
 				}
-				managers=newManagers;
 			}
+			_managers=newManagers;
 		}
+		
+		managersColl.put(dir.getAbsolutePath(), _managers);
 		
 		Iterator<Entry<String, String>> it = mapXML.entrySet().iterator();
 		Entry<String, String> entry;
@@ -144,7 +174,7 @@ public class EHCache extends EHCacheSupport {
 			
 			moveData(dir,hashArg,cacheNames,arguments);
 			CacheManagerAndHash m = new CacheManagerAndHash(xml,"ehcache_"+config.getIdentification().getId(),hash);
-			managers.put(hashDir.getAbsolutePath(), m);
+			_managers.put(hashArg, m);
 		}
 		
 		clean(dir);
@@ -152,26 +182,31 @@ public class EHCache extends EHCacheSupport {
 	
 	public static void flushAllCaches() {
 		String[] names;
-		Iterator<Entry<String, CacheManagerAndHash>> it = managers.entrySet().iterator();
-		Entry<String, CacheManagerAndHash> entry;
-		while(it.hasNext()){
-			entry = it.next();
-			CacheManagerAndHash cmah = entry.getValue();
-			CacheManager manager=cmah.getInstance(false);
-			boolean alreadyLoaded=true;
-			if(manager==null){
-				// not loaded yet
-				alreadyLoaded=false;
-				manager=cmah.getInstance(true);
-			}
-			try {
-				names = manager.getCacheNames();
-				for(int i=0;i<names.length;i++){
-					manager.getCache(names[i]).flush();
+		Iterator<Map<String, CacheManagerAndHash>> _it = managersColl.values().iterator();
+		Map<String, CacheManagerAndHash> _managers;
+		while(_it.hasNext()) {
+			_managers = _it.next();
+			Iterator<Entry<String, CacheManagerAndHash>> it = _managers.entrySet().iterator();
+			Entry<String, CacheManagerAndHash> entry;
+			while(it.hasNext()){
+				entry = it.next();
+				CacheManagerAndHash cmah = entry.getValue();
+				CacheManager manager=cmah.getInstance(false);
+				boolean alreadyLoaded=true;
+				if(manager==null){
+					// not loaded yet
+					alreadyLoaded=false;
+					manager=cmah.getInstance(true);
 				}
-			}
-			finally {
-				if(!alreadyLoaded)cmah.shutdown();
+				try {
+					names = manager.getCacheNames();
+					for(int i=0;i<names.length;i++){
+						manager.getCache(names[i]).flush();
+					}
+				}
+				finally {
+					if(!alreadyLoaded)cmah.shutdown();
+				}
 			}
 		}
 	}
@@ -315,6 +350,7 @@ public class EHCache extends EHCacheSupport {
 				return "";
 			}
 	}
+	
 	private static String[] createHash(Struct[] arguments) {
 		String[] hashes=new String[arguments.length];
 		for(int i=0;i<arguments.length;i++){
@@ -546,8 +582,16 @@ public class EHCache extends EHCacheSupport {
 		this.cacheName=improveCacheName(cacheName);
 		
 		setClassLoader();
-		Resource hashDir = config.getConfigDir().getRealResource("ehcache").getRealResource(createHash(arguments));
-		manAndHash =managers.get(hashDir.getAbsolutePath());
+		Resource dir=config.getConfigDir().getRealResource("ehcache");
+		Map<String, CacheManagerAndHash> _managers = managersColl.get(dir.getAbsolutePath());
+		/*print.e("-------- init("+cacheName+") -----");
+		print.e(managersColl.keySet());
+		print.e(dir.getAbsolutePath());
+		print.e(_managers!=null);
+		print.e(createHash(arguments));
+		print.e(_managers.keySet());*/
+		manAndHash =_managers.get(createHash(arguments));
+		//print.e(manAndHash!=null);
 	}
 	
 	public void release() {
@@ -726,10 +770,10 @@ public class EHCache extends EHCacheSupport {
 	class CacheManagerAndHash {
 
 		//Configuration conf;
-		String hash;
+		final String hash;
 		private CacheManager _manager;
 		private String xml;
-		private String name;
+		final String name;
 
 		/*public CacheManagerAndHash(Configuration conf, String hash, int x) {
 			this.conf=conf;
