@@ -33,7 +33,7 @@ import org.xml.sax.helpers.XMLReaderFactory;
 
 public class CacheFactory extends DefaultHandler {
 	
-	public final static String DEFAULT_SAX_PARSER="org.apache.xerces.parsers.SAXParser";
+	//public final static String DEFAULT_SAX_PARSER="org.apache.xerces.parsers.SAXParser";
 		
 	private XMLReader xmlReader;
 	
