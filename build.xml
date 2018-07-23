@@ -19,6 +19,66 @@
   
   <buildnumber file="build.number"/>
 
+  <scriptdef name="pack200" language="javascript">
+     <attribute name="directory" />
+     <![CDATA[
+      
+
+     var dir = new java.io.File(attributes.get("directory"));
+     var files=dir.listFiles();
+
+      // prepare Pack200
+      var packer = java.util.jar.Pack200.newPacker();
+
+      // Initialize the state by setting the desired properties
+      var p = packer.properties();
+      p.put(java.util.jar.Pack200.Packer.EFFORT, "7");  // default is "5"
+      p.put(java.util.jar.Pack200.Packer.SEGMENT_LIMIT, "-1");
+      p.put(java.util.jar.Pack200.Packer.KEEP_FILE_ORDER, java.util.jar.Pack200.Packer.FALSE);
+      p.put(java.util.jar.Pack200.Packer.MODIFICATION_TIME, java.util.jar.Pack200.Packer.LATEST);
+      p.put(java.util.jar.Pack200.Packer.DEFLATE_HINT, java.util.jar.Pack200.Packer.FALSE);
+      //p.put(java.util.jar.Pack200.Packer.CODE_ATTRIBUTE_PFX+"LineNumberTable", java.util.jar.Pack200.Packer.STRIP);
+      p.put(java.util.jar.Pack200.Packer.UNKNOWN_ATTRIBUTE, java.util.jar.Pack200.Packer.ERROR);
+    
+      for(var i=0;i<files.length;i++) {
+        var trgJar=files[i];
+        if(!trgJar.getName().endsWith(".jar")) continue;
+
+        // jar -> pack200
+
+        var name=trgJar.getName();
+        var index=name.lastIndexOf(".jar");
+        name=name.substring(0,index)+".pack.gz";
+        var trgPack=new java.io.File( files[i].getParentFile() , name);
+
+        var is=null;
+        var os=null;
+        
+        try {
+          var echo = project.createTask( "echo" );
+          echo.setMessage("- pack "+name);
+          echo.perform();
+
+          is = new java.util.jar.JarInputStream(new java.io.FileInputStream(trgJar));
+          os=new java.util.zip.GZIPOutputStream(new java.io.FileOutputStream(trgPack));
+          packer.pack(is, os);
+          trgJar.delete();
+
+        }
+        finally {
+          if(is!=null) {
+            try {is.close();} catch(e) {}
+          }
+          if(os!=null) {
+            try {os.close();} catch(e) {}
+          }
+        } 
+      }
+     ]]>
+  </scriptdef>
+
+
+
   <scriptdef name="replace" language="javascript">
      <attribute name="haystack" />
      <attribute name="needle" />
@@ -140,6 +200,10 @@ cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bun
         <exclude name="**/org.lucee.axis*"/>
       </fileset>
     </copy>
+
+    <!-- pack200 the jars
+    <pack200 directory="${dist}/extension/jars"/> -->
+
 
     <!-- copy the logo -->
     <copy todir="${dist}/extension/META-INF">
