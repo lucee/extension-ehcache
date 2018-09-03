@@ -51,7 +51,9 @@ import net.sf.ehcache.distribution.RMICacheManagerPeerListenerFactory;
 import net.sf.ehcache.distribution.RMICacheManagerPeerProviderFactory;
 import net.sf.ehcache.distribution.RMICacheReplicatorFactory;
 
+import org.lucee.extension.cache.eh.rmi.LuceeRMICacheReplicatorFactory;
 import org.lucee.extension.cache.eh.util.CacheUtil;
+import org.lucee.extension.cache.eh.util.EHClassLoader;
 
 public class EHCache extends EHCacheSupport {
 	
@@ -437,8 +439,8 @@ public class EHCache extends EHCacheSupport {
 		xml.append(">\n");
 		if(isDistributed){
 			xml.append(" <cacheEventListenerFactory \n");
-			//xml.append(" class=\"net.sf.ehcache.distribution.RMICacheReplicatorFactory\" ");
 			xml.append(" class=\""+RMICacheReplicatorFactory.class.getName()+"\" \n");
+			//xml.append(" class=\""+LuceeRMICacheReplicatorFactory.class.getName()+"\" \n");
 			
 			xml.append(" properties=\"replicateAsynchronously="+replicateAsynchronously+
 					", asynchronousReplicationIntervalMillis="+asynchronousReplicationInterval+
@@ -464,6 +466,9 @@ public class EHCache extends EHCacheSupport {
 		xml.append(" </cache>\n");
 	
 		
+	}
+	public static void init(Config config,String[] cacheNames,Struct[] args) {
+		// not used
 	}
 
 	public void init(String cacheName, Struct arguments) throws IOException {
