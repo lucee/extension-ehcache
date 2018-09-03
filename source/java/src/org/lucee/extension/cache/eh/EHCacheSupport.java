@@ -61,8 +61,8 @@ public abstract class EHCacheSupport extends CacheSupport implements Cache {
 	@Override
 	public void put(String key, Object value, Long idleTime, Long liveTime) {
 		boolean hasTime = idleTime!=null || liveTime!=null;
-		Integer idle = idleTime==null?null : new Integer( (int)(idleTime.longValue()/1000) );
-		Integer live = liveTime==null?null : new Integer( (int)(liveTime.longValue()/1000) );
+		Integer idle = idleTime==null?null : Integer.valueOf( (int)(idleTime.longValue()/1000) );
+		Integer live = liveTime==null?null : Integer.valueOf( (int)(liveTime.longValue()/1000) );
 		
 		if(hasTime)getCache().put(new Element(key, value ,false, idle, live));
 		else getCache().put(new Element(key, value));
