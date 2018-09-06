@@ -33,6 +33,7 @@ import lucee.commons.io.cache.CacheEntry;
 import lucee.commons.io.cache.exp.CacheException;
 import lucee.commons.io.res.Resource;
 import lucee.commons.io.res.filter.ResourceNameFilter;
+import lucee.commons.lang.types.RefBoolean;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
@@ -53,7 +54,7 @@ import net.sf.ehcache.distribution.RMICacheReplicatorFactory;
 
 import org.lucee.extension.cache.eh.rmi.LuceeRMICacheReplicatorFactory;
 import org.lucee.extension.cache.eh.util.CacheUtil;
-import org.lucee.extension.cache.eh.util.EHClassLoader;
+import org.lucee.extension.cache.eh.util.TypeUtil;
 
 public class EHCache extends EHCacheSupport {
 	
@@ -88,7 +89,7 @@ public class EHCache extends EHCacheSupport {
 	private String cacheName;
 	private ClassLoader classLoader;
 	private CacheManagerAndHash mah;
-
+	
 	
 	public static void flushAllCaches() {
 		String[] names;
@@ -270,9 +271,9 @@ public class EHCache extends EHCacheSupport {
 		return hashes;
 	}
 
-	private static String createXML(String path, String cacheName,Struct arguments, String hash) {
-		boolean isDistributed=false;
-		
+	private static String createXML(String path, String cacheName,Struct arguments, String hash, RefBoolean isDistributed) {
+		//boolean isDistributed=false;
+		isDistributed.setValue(false);
 		StringBuilder xml=new StringBuilder();
 		xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 		xml.append("<ehcache xsi:noNamespaceSchemaLocation=\"ehcache.xsd\">\n");
@@ -288,7 +289,7 @@ public class EHCache extends EHCacheSupport {
 		// Automatic
 		if(arguments!=null && arguments.get("distributed","").equals("automatic")){
 			// provider
-			isDistributed=true;
+			isDistributed.setValue(true);
 			xml.append("<cacheManagerPeerProviderFactory \n");
 			xml.append(" class=\""+RMICacheManagerPeerProviderFactory.class.getName()+"\"\n ");
 			String add = arguments.get("automatic_addional","").toString().trim();
@@ -311,7 +312,7 @@ public class EHCache extends EHCacheSupport {
 		// Manual
 		else if(arguments!=null && arguments.get("distributed","").equals("manual")){
 			// provider
-			isDistributed=true;
+			isDistributed.setValue(true);
 			xml.append("<cacheManagerPeerProviderFactory");
 			xml.append(" class=\""+RMICacheManagerPeerProviderFactory.class.getName()+"\" ");
 			String add = arguments.get("manual_addional","").toString().trim();
@@ -341,15 +342,6 @@ public class EHCache extends EHCacheSupport {
 			
 		}
 
-		
-		
-		if(isDistributed){
-		}
-		
-        
-        
-
-		
 		xml.append("<defaultCache \n");
 		xml.append("   diskPersistent=\"true\"\n");
 		xml.append("   eternal=\"false\"\n");
@@ -364,9 +356,7 @@ public class EHCache extends EHCacheSupport {
 		xml.append(" />\n");
 		
 		// cache
-		createCacheXml(xml,cacheName,arguments,isDistributed);
-		
-		
+		createCacheXml(xml,cacheName,arguments,isDistributed.toBooleanValue());
 		
 		xml.append("</ehcache>\n");
 		return xml.toString();
@@ -507,11 +497,11 @@ public class EHCache extends EHCacheSupport {
 		if(mah==null) {
 			Resource hashDir=dir.getRealResource(hashArgs);
 			if(!hashDir.isDirectory())hashDir.createDirectory(true);
-
-			String xml=createXML(hashDir.getAbsolutePath(), cacheName,arguments,hashArgs);
+			RefBoolean isDistributed = CFMLEngineFactory.getInstance().getCreationUtil().createRefBoolean(false);
+			String xml=createXML(hashDir.getAbsolutePath(), cacheName,arguments,hashArgs,isDistributed);
 			mah=new CacheManagerAndHash(xml);// "ehcache_"+config.getIdentification().getId()
 			managers.put(hashArgs, mah);
-			
+			this.isDistributed=isDistributed.toBooleanValue();
 			// write the xml
 			writeEHCacheXML(hashDir,xml);
 		}
@@ -574,7 +564,7 @@ public class EHCache extends EHCacheSupport {
 			if(el==null)throw new CacheException("there is no entry in cache with key ["+key+"]");
 			hits++;
 			misses--;
-			return new EHCacheEntry(el);
+			return new EHCacheEntry(this,el);
 		}
 		catch(IllegalStateException ise) {
 			throw new CacheException(ise.getMessage());
@@ -589,7 +579,7 @@ public class EHCache extends EHCacheSupport {
 			Element el = getCache().get(key);
 			if(el!=null){
 				hits++;
-				return new EHCacheEntry(el);
+				return new EHCacheEntry(this,el);
 			}
 		}
 		catch(Throwable t) {
@@ -607,7 +597,7 @@ public class EHCache extends EHCacheSupport {
 			if(el==null)throw new CacheException("there is no entry in cache with key ["+key+"]");
 			misses--;
 			hits++;
-			return el.getObjectValue();
+			return isDistributed?TypeUtil.toCFML(el.getObjectValue()):el.getObjectValue();
 		}
 		catch(IllegalStateException ise) {
 			throw new CacheException(ise.getMessage());
@@ -623,11 +613,10 @@ public class EHCache extends EHCacheSupport {
 			Element el = getCache().get(key);
 			if(el!=null){
 				hits++;
-				return el.getObjectValue();
+				return isDistributed?TypeUtil.toCFML(el.getObjectValue()):el.getObjectValue();
 			}
 		}
-		catch(Throwable t) {
-			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
+		catch(Exception e) {
 			misses++;
 		}
 		return defaultValue;

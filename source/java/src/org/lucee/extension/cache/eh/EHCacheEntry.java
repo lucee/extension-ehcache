@@ -25,13 +25,16 @@ import lucee.runtime.type.Struct;
 import net.sf.ehcache.Element;
 
 import org.lucee.extension.cache.eh.util.CacheUtil;
+import org.lucee.extension.cache.eh.util.TypeUtil;
 
 public class EHCacheEntry implements CacheEntry {
 
+	private EHCacheSupport cache;
 	private Element element;
 
-	public EHCacheEntry(Element element) {
+	public EHCacheEntry(EHCacheSupport cache,Element element) {
 		this.element=element;
+		this.cache=cache;
 	}
 
 	@Override
@@ -78,7 +81,7 @@ public class EHCacheEntry implements CacheEntry {
 
 	@Override
 	public Object getValue() {
-		return element.getObjectValue();
+		return cache.isDistributed?TypeUtil.toCFML(element.getObjectValue()):element.getObjectValue();
 	}
 
 	public void setElement(Element element) {

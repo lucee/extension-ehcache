@@ -28,8 +28,11 @@ import net.sf.ehcache.Element;
 import net.sf.ehcache.config.CacheConfiguration;
 
 import org.lucee.extension.cache.CacheSupport;
+import org.lucee.extension.cache.eh.util.TypeUtil;
 
 public abstract class EHCacheSupport extends CacheSupport implements Cache {
+	
+	protected boolean isDistributed;
 
 	@Override
 	public boolean contains(String key) {
@@ -64,8 +67,8 @@ public abstract class EHCacheSupport extends CacheSupport implements Cache {
 		Integer idle = idleTime==null?null : Integer.valueOf( (int)(idleTime.longValue()/1000) );
 		Integer live = liveTime==null?null : Integer.valueOf( (int)(liveTime.longValue()/1000) );
 		
-		if(hasTime)getCache().put(new Element(key, value ,false, idle, live));
-		else getCache().put(new Element(key, value));
+		if(hasTime)getCache().put(new Element(key, isDistributed?TypeUtil.toJVM(value):value ,false, idle, live));
+		else getCache().put(new Element(key, isDistributed?TypeUtil.toJVM(value):value));
 	}
 
 
@@ -80,7 +83,7 @@ public abstract class EHCacheSupport extends CacheSupport implements Cache {
 	@Override
 	public CacheEntry getQuiet(String key, CacheEntry defaultValue){
 		try {
-			return new EHCacheEntry(getCache().getQuiet(key));
+			return new EHCacheEntry(this,getCache().getQuiet(key));
 		} catch(Throwable t) {
 			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			return defaultValue;
@@ -89,7 +92,7 @@ public abstract class EHCacheSupport extends CacheSupport implements Cache {
 	
 	@Override
 	public CacheEntry getQuiet(String key) {
-		return new EHCacheEntry(getCache().getQuiet(key));
+		return new EHCacheEntry(this,getCache().getQuiet(key));
 	}
 
 	protected abstract net.sf.ehcache.Cache getCache();
