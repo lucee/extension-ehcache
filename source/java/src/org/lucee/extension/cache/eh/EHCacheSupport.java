@@ -29,10 +29,24 @@ import net.sf.ehcache.config.CacheConfiguration;
 
 import org.lucee.extension.cache.CacheSupport;
 import org.lucee.extension.cache.eh.util.TypeUtil;
+import lucee.loader.engine.CFMLEngineFactory;
+import lucee.commons.io.log.Log;
 
 public abstract class EHCacheSupport extends CacheSupport implements Cache {
 	
 	protected boolean isDistributed;
+	protected boolean isSerialized;
+
+	public static Log getLogger() {
+		Log logger = CFMLEngineFactory.getInstance().getThreadConfig().getLog("application");
+
+		// for some reason, setting the application log to "debug" does not always show
+		// the ehCache output, so when debugging code, we can just manually set the log
+		// to DEBUG mode to make sure we see the log output
+		// logger.setLogLevel(logger.LEVEL_DEBUG);
+
+		return logger;
+	}
 
 	@Override
 	public boolean contains(String key) {
@@ -66,9 +80,11 @@ public abstract class EHCacheSupport extends CacheSupport implements Cache {
 		boolean hasTime = idleTime!=null || liveTime!=null;
 		Integer idle = idleTime==null?null : Integer.valueOf( (int)(idleTime.longValue()/1000) );
 		Integer live = liveTime==null?null : Integer.valueOf( (int)(liveTime.longValue()/1000) );
+
+		getLogger().debug("ehcache", "Putting " + key + " item into cache (serializing=" + isSerialized + ")...");
 		
-		if(hasTime)getCache().put(new Element(key, isDistributed?TypeUtil.toJVM(value):value ,false, idle, live));
-		else getCache().put(new Element(key, isDistributed?TypeUtil.toJVM(value):value));
+		if(hasTime)getCache().put(new Element(key, isSerialized?TypeUtil.toJVM(value):value ,false, idle, live));
+		else getCache().put(new Element(key, isSerialized?TypeUtil.toJVM(value):value));
 	}
 
 

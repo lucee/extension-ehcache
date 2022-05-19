@@ -102,6 +102,7 @@ public class LuceeRMICacheReplicatorFactory extends CacheEventListenerFactory {
         int maximumBatchSize = extractMaximumBatchSize(properties);
 
         if (replicateAsynchronously) {
+            this.log.debug("ehcache", "Replicating asynchronously...");
             return new LuceeRMIAsynchronousCacheReplicator(config,log,
                     replicatePuts,
                     replicatePutsViaCopy,
@@ -111,6 +112,7 @@ public class LuceeRMICacheReplicatorFactory extends CacheEventListenerFactory {
                     replicationIntervalMillis,
                     maximumBatchSize);
         } else {
+            this.log.debug("ehcache", "Replicating synchronously...");
             return new RMISynchronousCacheReplicator(
                     replicatePuts,
                     replicatePutsViaCopy,

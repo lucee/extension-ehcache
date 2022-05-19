@@ -90,10 +90,10 @@
 		,field("Replicate Asynchronously","replicateAsynchronously","true",true,"whether replications are
       asynchronous (checked) or synchronous (unchecked), .","checkbox",'true')
 		
-		,field("Replicate Puts","replicatePuts","true",true,"whether new elements placed in a cache are replicated to others.","checkbox",'true')
-		,field("Replicate Puts Via Copy","replicatePutsViaCopy","true",true,"whether the new elements are copied to other caches (checked), or whether a remove message is sent.","checkbox",'true')
+		,field("Replicate Puts","replicatePuts","false",true,"whether new elements placed in a cache are replicated to others.","checkbox",'true')
+		,field("Replicate Puts Via Copy","replicatePutsViaCopy","false",true,"whether the new elements are copied to other caches (checked), or whether a remove message is sent.<br><br><small><strong>IMPORTANT</strong> — Enabling this option requires that objects are serialized, which can involve significant overhead, especially when caching components. For best performance, leave this disabled, and then the cache items will just be marked for removal in other nodes instead of pushing a serialized object to the nodes.</small>","checkbox",'true')
 		,field("Replicate Updates","replicateUpdates","true",true,"whether new elements which override an element already existing with the same key are replicated","checkbox",'true')
-		,field("Replicate Updates Via Copy","replicateUpdatesViaCopy","true",true,"whether the new elements are copied to other caches (checked), or whether a remove message is sent.","checkbox",'true')
+		,field("Replicate Updates Via Copy","replicateUpdatesViaCopy","false",true,"whether the new elements are copied to other caches (checked), or whether a remove message is sent.<br><br><small><strong>IMPORTANT</strong> — Enabling this option requires that objects are serialized, which can involve significant overhead, especially when caching components. For best performance, leave this disabled, and then the cache items will just be marked for removal in other nodes instead of pushing a serialized object to the nodes.</small>","checkbox",'true')
 		,field("Replicate Removals","replicateRemovals","true",true,"whether element removals are replicated.","checkbox",'true')
 		,field("Asynchronous Replication Intervall","asynchronousReplicationIntervalMillis","1000",true,"The asynchronous replicator runs at a set interval of milliseconds (has no impact when ""Replicate Asynchronously"" is not checked)","text")
 		
