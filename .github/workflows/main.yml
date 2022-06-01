@@ -40,7 +40,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: ehcache-lex
-        path: dist/modern/*.lex
+        path: dist/*.lex
     - name: Checkout Lucee
       uses: actions/checkout@v2
       with:
