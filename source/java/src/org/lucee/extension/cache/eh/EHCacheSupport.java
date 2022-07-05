@@ -24,6 +24,7 @@ import lucee.commons.io.cache.Cache;
 import lucee.commons.io.cache.CacheEntry;
 import lucee.commons.io.cache.CachePro;
 import lucee.runtime.type.Struct;
+import lucee.runtime.config.Config;
 import net.sf.ehcache.Element;
 import net.sf.ehcache.config.CacheConfiguration;
 
@@ -36,9 +37,14 @@ public abstract class EHCacheSupport extends CacheSupport implements Cache {
 	
 	protected boolean isDistributed;
 	protected boolean isSerialized;
+	protected Log logger;
 
-	public static Log getLogger() {
-		Log logger = CFMLEngineFactory.getInstance().getThreadConfig().getLog("application");
+	protected Log getLogger() {
+		return getLogger(null);
+	}
+
+	protected Log getLogger(Config config) {
+		Log logger = (config==null?CFMLEngineFactory.getInstance().getThreadConfig():config).getLog("application");
 
 		// for some reason, setting the application log to "debug" does not always show
 		// the ehCache output, so when debugging code, we can just manually set the log
