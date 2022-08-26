@@ -79,15 +79,15 @@ public class EHCacheClassLoader extends ClassLoader {
 				clazz = (Class<?>)this.LuceeEnvClassLoader.loadClass(className);
 			} catch (ClassNotFoundException ex) {
 				// ignore that we cannot find the class
-				log.debug("ehcache", "Could not find class in EnvClassLoader.");
+				log.debug("ehcache", "Could not find " + className + " class in EnvClassLoader.");
 			}
 		}
 		
-		log.debug("ehcache", "Could not find in normal class loader, searching Felix bundles...");
+		log.debug("ehcache", "Could not find " + className + " in normal class loader, searching Felix bundles...");
 		clazz = searchFelixBundleClasses(className);
 
 		if( clazz == null ){
-			log.error("ehcache", "Could not find class in any class loader!");
+			log.debug("ehcache", "Could not find " + className + " class in any class loader!");
 			throw new ClassNotFoundException();
 		}
 
@@ -106,15 +106,19 @@ public class EHCacheClassLoader extends ClassLoader {
 				Bundle[] bundles = bc.getBundles();
 				Bundle b = null;
 				for (int i = 0; i < bundles.length; i++) {
+					clazz = null;
 					b = bundles[i];
 					//getLogger().debug("ehcache", "Searching " + b.getSymbolicName() + " bundle for " + className + " class.");
 					if (b != null && !isFrameworkBundle(b)) {
 						try {
-							getLogger().debug("ehcache", "Found in " + className + " class in " + b.getSymbolicName() + " bundle.");
-							return b.loadClass(className);
+							clazz = b.loadClass(className);
 						}
 						catch (Exception e) {
 							clazz = null;
+						}
+						if( clazz != null ){
+							getLogger().debug("ehcache", "Found in " + className + " class in " + b.getSymbolicName() + " bundle.");
+							return clazz;
 						}
 					}
 				}
