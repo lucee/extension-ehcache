@@ -83,8 +83,8 @@ public class TypeUtil {
 				return "lucee-serialized:"+SerializerUtil.serialize((Serializable) value);
 			}
 			catch (Exception e) {
-				print.e("Could not serialize item \"" + value.toString() + "\" in toJVM()");
-				print.e(e);
+				// print.e("Could not serialize item \"" + value.toString() + "\" in toJVM()");
+				// print.e(e);
 			}
 		}
 		
@@ -117,8 +117,8 @@ public class TypeUtil {
 				return SerializerUtil.evaluate(((String)value).substring(17));
 			}
 			catch (Exception e) {
-				print.e("Could not deserialize item \"" + value.toString() + "\" in toCFML()");
-				print.e(e);
+				// print.e("Could not deserialize item \"" + value.toString() + "\" in toCFML()");
+				// print.e(e);
 			}
 		}
 		return value;

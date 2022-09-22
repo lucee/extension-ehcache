@@ -24,14 +24,14 @@ import lucee.commons.io.log.Log;
  */
 public class EHCacheClassLoader extends ClassLoader {
 	private Config config;
-	private ClassLoader LuceeEnvClassLoader;
+	private ClassLoader coreEnvClassLoader;
 
 	public EHCacheClassLoader(Config config) {
 		this.config = config;
 
 		try {
 			Method m = config.getClass().getMethod("getClassLoaderEnv", new Class[0]);
-			this.LuceeEnvClassLoader = (ClassLoader) m.invoke(config, new Object[0]);
+			this.coreEnvClassLoader = (ClassLoader) m.invoke(config, new Object[0]);
 		}
 		catch (Exception e) {
 			// do nothing
@@ -39,12 +39,17 @@ public class EHCacheClassLoader extends ClassLoader {
 	}
 
 	public CFMLEngine getCFMLEngine(){
+		/*
+		 * When the code is running asynchronously, CFMLEngineFactory.getInstance() may not return
+		 * an instance of CFMLEngine with the correct context, so we need to call getEngine() with
+		 * the correct configuration to ensure we get the expected instance of the CFMLEngine. 
+		 */
 		try {
 			Class<?> clazz = CFMLEngineFactory.getInstance().getClassUtil().loadClass("lucee.runtime.config.ConfigWebUtil");
 			Method m = clazz.getMethod("getEngine", new Class[] { Config.class });
 			return (CFMLEngine) m.invoke(null, this.config);
 		} catch (Exception e) {
-			e.printStackTrace();
+			// if we can't create an instance of the engine, that's okay, it's safe to return null
 		}
 
 		return null;
@@ -74,9 +79,9 @@ public class EHCacheClassLoader extends ClassLoader {
 		log.debug("ehcache", "Loading class " + className);
 
 		// we should try the finding the class in the Lucee environmental class loader
-		if( this.LuceeEnvClassLoader != null ){
+		if( this.coreEnvClassLoader != null ){
 			try {
-				clazz = (Class<?>)this.LuceeEnvClassLoader.loadClass(className);
+				clazz = (Class<?>)this.coreEnvClassLoader.loadClass(className);
 			} catch (ClassNotFoundException ex) {
 				// ignore that we cannot find the class
 				log.debug("ehcache", "Could not find " + className + " class in EnvClassLoader.");

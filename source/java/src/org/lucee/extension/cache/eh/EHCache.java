@@ -271,8 +271,8 @@ public class EHCache extends EHCacheSupport {
 		return hashes;
 	}
 
-	private static String createXML(String path, String cacheName,Struct arguments, String hash, RefBoolean isDistributed, Log LOG) {
-		LOG.debug("ehcache", "Building ehCache XML...");
+	private static String createXML(String path, String cacheName,Struct arguments, String hash, RefBoolean isDistributed, Log log) {
+		log.debug("ehcache", "Building ehCache XML...");
 
 		isDistributed.setValue(false);
 		StringBuilder xml=new StringBuilder();
@@ -337,7 +337,7 @@ public class EHCache extends EHCacheSupport {
 			if(!Util.isEmpty(socketTimeoutMillis) && !"120000".equals(socketTimeoutMillis)) 
 				add(sb,"socketTimeoutMillis="+socketTimeoutMillis);
 
-			LOG.debug("ehcache", "Remote port = " + remoteObjectPort);
+			log.debug("ehcache", "Remote port = " + remoteObjectPort);
 				
 			xml.append("<cacheManagerPeerListenerFactory"); 
 			xml.append(" class=\""+RMICacheManagerPeerListenerFactory.class.getName()+"\""); 
@@ -368,8 +368,8 @@ public class EHCache extends EHCacheSupport {
 
 		String xmlContents = xml.toString();
 
-		LOG.debug("ehcache", "Finished building ehCache XML...");
-		LOG.debug("ehcache", "ehcache.xml = \n" + xmlContents);
+		log.debug("ehcache", "Finished building ehCache XML...");
+		log.debug("ehcache", "ehcache.xml = \n" + xmlContents);
 
 		return xmlContents;
 	}
@@ -480,18 +480,18 @@ public class EHCache extends EHCacheSupport {
 	@Override
 	public void init(Config config,String cacheName,Struct arguments) throws IOException {
 		
-		Log LOG = getLogger();
+		Log log = getLogger();
 		this.cacheName=cacheName=improveCacheName(cacheName);
 		
 		// env stuff
 		System.setProperty("net.sf.ehcache.enableShutdownHook", "true");
 		try {
-			LOG.debug("ehcache", "Setting class loader context...");
+			log.debug("ehcache", "Setting class loader context...");
 			this.classLoader=CacheUtil.getClassLoaderEnv(config);
 			setClassLoader();
 			
 		} catch (PageException pe) {
-			LOG.error("ehcache", "Failed to set class loader context...", pe);
+			log.error("ehcache", "Failed to set class loader context...", pe);
 			throw CFMLEngineFactory.getInstance().getExceptionUtil().toIOException(pe);
 		}
 		
@@ -510,13 +510,13 @@ public class EHCache extends EHCacheSupport {
 		// get manager for that specific configuration (arguments)
 		mah=managers.get(hashArgs);
 
-		LOG.debug("ehcache", "mah = " + ((mah == null) ? "null" : mah.toString()));
+		log.debug("ehcache", "mah = " + ((mah == null) ? "null" : mah.toString()));
 
 		if(mah==null) {
 			Resource hashDir=dir.getRealResource(hashArgs);
 			if(!hashDir.isDirectory())hashDir.createDirectory(true);
 			RefBoolean isDistributed = CFMLEngineFactory.getInstance().getCreationUtil().createRefBoolean(false);
-			String xml=createXML(hashDir.getAbsolutePath(), cacheName,arguments,hashArgs,isDistributed,LOG);
+			String xml=createXML(hashDir.getAbsolutePath(), cacheName,arguments,hashArgs,isDistributed,log);
 			mah=new CacheManagerAndHash(xml);// "ehcache_"+config.getIdentification().getId()
 			managers.put(hashArgs, mah);
 			this.isDistributed=isDistributed.toBooleanValue();
@@ -524,7 +524,7 @@ public class EHCache extends EHCacheSupport {
 				// we should serialize the results if we are putting copies of the elements in the cache
 				this.isSerialized=(toBooleanValue(arguments.get("replicatePutsViaCopy",Boolean.FALSE),REPLICATE_PUTS_VIA_COPY) || toBooleanValue(arguments.get("replicateUpdatesViaCopy",Boolean.FALSE),REPLICATE_UPDATES_VIA_COPY)) ? true : false;
 			}
-			LOG.debug("ehcache", "Writing EHCache XML!");
+			log.debug("ehcache", "Writing EHCache XML!");
 			// write the xml
 			writeEHCacheXML(hashDir,xml);
 		}
