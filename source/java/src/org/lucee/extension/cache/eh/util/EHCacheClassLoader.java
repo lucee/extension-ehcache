@@ -55,6 +55,13 @@ public class EHCacheClassLoader extends ClassLoader {
 		return null;
 	}
 
+	/*
+	 * We need to test if the class is a framework bundle and to do that, we need
+	 * to use reflection to get access to the private OSGiUtil isFrameworkBundle()
+	 * method.
+	 * 
+	 * IMPORTANT — If the method in the Lucee source code changes, this function will break.
+	 */
 	public boolean isFrameworkBundle(Bundle b){
 		try {
 			Class<?> clazz = CFMLEngineFactory.getInstance().getClassUtil().loadClass("lucee.runtime.osgi.OSGiUtil");
