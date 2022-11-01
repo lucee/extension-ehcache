@@ -38,23 +38,6 @@ public class EHCacheClassLoader extends ClassLoader {
 		}
 	}
 
-	public CFMLEngine getCFMLEngine(){
-		/*
-		 * When the code is running asynchronously, CFMLEngineFactory.getInstance() may not return
-		 * an instance of CFMLEngine with the correct context, so we need to call getEngine() with
-		 * the correct configuration to ensure we get the expected instance of the CFMLEngine. 
-		 */
-		try {
-			Class<?> clazz = CFMLEngineFactory.getInstance().getClassUtil().loadClass("lucee.runtime.config.ConfigWebUtil");
-			Method m = clazz.getMethod("getEngine", new Class[] { Config.class });
-			return (CFMLEngine) m.invoke(null, this.config);
-		} catch (Exception e) {
-			// if we can't create an instance of the engine, that's okay, it's safe to return null
-		}
-
-		return null;
-	}
-
 	/*
 	 * We need to test if the class is a framework bundle and to do that, we need
 	 * to use reflection to get access to the private OSGiUtil isFrameworkBundle()
@@ -106,31 +89,32 @@ public class EHCacheClassLoader extends ClassLoader {
 		return clazz;
 	}
 
-	private synchronized Class<?> searchFelixBundleClasses(final String className){
+	private Class<?> searchFelixBundleClasses(final String className){
 		Class<?> clazz = null;
 
-		// try to find the class in the Felix bundles
-		CFMLEngine engine = getCFMLEngine();
+		synchronized (getClassLoadingLock(className)){		
+			// try to find the class in the Felix bundles
+			CFMLEngine engine = CFMLEngineFactory.getInstance();
 
-		if (engine != null) {
-			BundleContext bc = engine.getBundleContext();
-			if (bc != null) {
-				Bundle[] bundles = bc.getBundles();
-				Bundle b = null;
-				for (int i = 0; i < bundles.length; i++) {
-					clazz = null;
-					b = bundles[i];
-					//getLogger().debug("ehcache", "Searching " + b.getSymbolicName() + " bundle for " + className + " class.");
-					if (b != null && !isFrameworkBundle(b)) {
-						try {
-							clazz = b.loadClass(className);
-						}
-						catch (Exception e) {
-							clazz = null;
-						}
-						if( clazz != null ){
-							getLogger().debug("ehcache", "Found in " + className + " class in " + b.getSymbolicName() + " bundle.");
-							return clazz;
+			if (engine != null) {
+				BundleContext bc = engine.getBundleContext();
+				if (bc != null) {
+					Bundle[] bundles = bc.getBundles();
+					Bundle b = null;
+					for (int i = 0; i < bundles.length; i++) {
+						clazz = null;
+						b = bundles[i];
+						if (b != null && !isFrameworkBundle(b)) {
+							try {
+								clazz = b.loadClass(className);
+							}
+							catch (Exception e) {
+								clazz = null;
+							}
+							if( clazz != null ){
+								getLogger().debug("ehcache", "Found in " + className + " class in " + b.getSymbolicName() + " bundle.");
+								return clazz;
+							}
 						}
 					}
 				}
