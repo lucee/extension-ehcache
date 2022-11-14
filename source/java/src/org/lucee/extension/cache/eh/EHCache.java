@@ -56,8 +56,9 @@ import org.lucee.extension.cache.eh.rmi.LuceeRMICacheReplicatorFactory;
 import org.lucee.extension.cache.eh.util.CacheUtil;
 import org.lucee.extension.cache.eh.util.TypeUtil;
 
+import lucee.commons.io.log.Log;
+
 public class EHCache extends EHCacheSupport {
-	
 	
 	
 	static {
@@ -89,8 +90,7 @@ public class EHCache extends EHCacheSupport {
 	private String cacheName;
 	private ClassLoader classLoader;
 	private CacheManagerAndHash mah;
-	
-	
+		
 	public static void flushAllCaches() {
 		String[] names;
 		Iterator<Map<String, CacheManagerAndHash>> _it = managersColl.values().iterator();
@@ -271,8 +271,9 @@ public class EHCache extends EHCacheSupport {
 		return hashes;
 	}
 
-	private static String createXML(String path, String cacheName,Struct arguments, String hash, RefBoolean isDistributed) {
-		//boolean isDistributed=false;
+	private static String createXML(String path, String cacheName,Struct arguments, String hash, RefBoolean isDistributed, Log log) {
+		log.debug("ehcache", "Building ehCache XML...");
+
 		isDistributed.setValue(false);
 		StringBuilder xml=new StringBuilder();
 		xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -282,7 +283,6 @@ public class EHCache extends EHCacheSupport {
 		xml.append("<diskStore path=\"");
 		xml.append(path);
 		xml.append("\"/>\n");
-		xml.append("<cacheManagerEventListenerFactory class=\"\" properties=\"\"/>\n");
 		
 		
 		// RMI
@@ -304,10 +304,6 @@ public class EHCache extends EHCacheSupport {
 					add+" \" />\n");
 			
 			//hostName=fully_qualified_hostname_or_ip,
-			
-			// listener
-			xml.append("<cacheManagerPeerListenerFactory class=\""+RMICacheManagerPeerListenerFactory.class.getName()+"\"/>\n");
-			
 		}
 		// Manual
 		else if(arguments!=null && arguments.get("distributed","").equals("manual")){
@@ -318,10 +314,17 @@ public class EHCache extends EHCacheSupport {
 			String add = arguments.get("manual_addional","").toString().trim();
 			if(!Util.isEmpty(add) && !add.startsWith(","))add=","+add;
 			add=add.replace('\n', ' ');
-			xml.append(" properties=\"peerDiscovery=manual, rmiUrls="+arguments.get("manual_rmiUrls","").toString().trim().toLowerCase().replace('\n', ' ')+
+			xml.append(" properties=\"peerDiscovery=manual, rmiUrls="+arguments.get("manual_rmiUrls","").toString().trim().replace('\n', ' ')+
 					add+"\"/>\n"); //propertySeparator=\",\" 
+		}
+
 		
-			// listener
+		// Whenever RMI is being used, we must add the listener properties so we can bind
+		// to the specified ports in the administration.
+		//
+		// This is important for "automatic" as well, so that we can configure specific
+		// ports to use instead of having ehCache bind to an ephemeral port.
+		if( isDistributed.toBooleanValue() ){
 			StringBuilder sb=new StringBuilder();
 			
 			String hostName=arguments.get("listener_hostName","").toString().trim().toLowerCase();
@@ -333,13 +336,16 @@ public class EHCache extends EHCacheSupport {
 			String socketTimeoutMillis = arguments.get("listener_socketTimeoutMillis","").toString().trim().toLowerCase();
 			if(!Util.isEmpty(socketTimeoutMillis) && !"120000".equals(socketTimeoutMillis)) 
 				add(sb,"socketTimeoutMillis="+socketTimeoutMillis);
-			
+
+			log.debug("ehcache", "Remote port = " + remoteObjectPort);
+				
 			xml.append("<cacheManagerPeerListenerFactory"); 
 			xml.append(" class=\""+RMICacheManagerPeerListenerFactory.class.getName()+"\""); 
 			if(sb.length()>0)xml.append(" properties=\""+sb+"\""); 
 			xml.append("/>\n");
-			
-			
+		// for non-distributed caches, we write an empty event listener
+		} else {
+			xml.append("<cacheManagerEventListenerFactory class=\"\" properties=\"\"/>\n");
 		}
 
 		xml.append("<defaultCache \n");
@@ -359,7 +365,13 @@ public class EHCache extends EHCacheSupport {
 		createCacheXml(xml,cacheName,arguments,isDistributed.toBooleanValue());
 		
 		xml.append("</ehcache>\n");
-		return xml.toString();
+
+		String xmlContents = xml.toString();
+
+		log.debug("ehcache", "Finished building ehCache XML...");
+		log.debug("ehcache", "ehcache.xml = \n" + xmlContents);
+
+		return xmlContents;
 	}
 	
 	
@@ -468,15 +480,18 @@ public class EHCache extends EHCacheSupport {
 	@Override
 	public void init(Config config,String cacheName,Struct arguments) throws IOException {
 		
+		Log log = getLogger();
 		this.cacheName=cacheName=improveCacheName(cacheName);
 		
 		// env stuff
 		System.setProperty("net.sf.ehcache.enableShutdownHook", "true");
 		try {
+			log.debug("ehcache", "Setting class loader context...");
 			this.classLoader=CacheUtil.getClassLoaderEnv(config);
 			setClassLoader();
 			
 		} catch (PageException pe) {
+			log.error("ehcache", "Failed to set class loader context...", pe);
 			throw CFMLEngineFactory.getInstance().getExceptionUtil().toIOException(pe);
 		}
 		
@@ -494,14 +509,22 @@ public class EHCache extends EHCacheSupport {
 		
 		// get manager for that specific configuration (arguments)
 		mah=managers.get(hashArgs);
+
+		log.debug("ehcache", "mah = " + ((mah == null) ? "null" : mah.toString()));
+
 		if(mah==null) {
 			Resource hashDir=dir.getRealResource(hashArgs);
 			if(!hashDir.isDirectory())hashDir.createDirectory(true);
 			RefBoolean isDistributed = CFMLEngineFactory.getInstance().getCreationUtil().createRefBoolean(false);
-			String xml=createXML(hashDir.getAbsolutePath(), cacheName,arguments,hashArgs,isDistributed);
+			String xml=createXML(hashDir.getAbsolutePath(), cacheName,arguments,hashArgs,isDistributed,log);
 			mah=new CacheManagerAndHash(xml);// "ehcache_"+config.getIdentification().getId()
 			managers.put(hashArgs, mah);
 			this.isDistributed=isDistributed.toBooleanValue();
+			if( this.isDistributed ){
+				// we should serialize the results if we are putting copies of the elements in the cache
+				this.isSerialized=(toBooleanValue(arguments.get("replicatePutsViaCopy",Boolean.FALSE),REPLICATE_PUTS_VIA_COPY) || toBooleanValue(arguments.get("replicateUpdatesViaCopy",Boolean.FALSE),REPLICATE_UPDATES_VIA_COPY)) ? true : false;
+			}
+			log.debug("ehcache", "Writing EHCache XML!");
 			// write the xml
 			writeEHCacheXML(hashDir,xml);
 		}

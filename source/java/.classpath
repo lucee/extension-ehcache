@@ -7,6 +7,7 @@
 	<classpathentry kind="lib" path="libs/jsp-api-2.2.jar"/>
 	<classpathentry kind="lib" path="libs/org.apache.felix.framework-4.2.1.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/loader"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/runtime"/>
 	<classpathentry kind="lib" path="libs/lucee.jar"/>
 	<classpathentry kind="lib" path="libs/org.lucee.ehcache-2.10.3.jar"/>
 	<classpathentry kind="output" path="bin"/>

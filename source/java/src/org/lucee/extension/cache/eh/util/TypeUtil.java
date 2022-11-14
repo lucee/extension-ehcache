@@ -10,7 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.io.Serializable;
 
+import org.lucee.extension.cache.eh.EHCacheSupport;
 import org.lucee.extension.cache.util.print;
 
 import lucee.loader.engine.CFMLEngineFactory;
@@ -21,6 +23,7 @@ import lucee.runtime.type.Struct;
 import lucee.runtime.type.dt.DateTime;
 import lucee.runtime.type.dt.TimeSpan;
 import lucee.runtime.util.Creation;
+import lucee.runtime.Component;
 
 public class TypeUtil {
 	
@@ -35,7 +38,16 @@ public class TypeUtil {
 		if(value==null) return null;
 		//print.e("jvm:"+value.getClass().getName());
 		
-		if(value instanceof Collection) {
+		// DateTime
+		if(value instanceof DateTime) {
+			return new Date(((DateTime)value).getTime());
+		}
+		// TimeSpan
+		if(value instanceof TimeSpan) {
+			return ((TimeSpan)value).castToDoubleValue(0);
+		}
+
+		if(value instanceof Collection && !(value instanceof Component)) {
 			// Array
 			if(value instanceof Array) {
 				List<Object> list=new LinkedList<Object>();
@@ -64,23 +76,17 @@ public class TypeUtil {
 		// Component
 		// UDF
 		
-		
-		// DateTime
-		if(value instanceof DateTime) {
-			return new Date(((DateTime)value).getTime());
-		}
-		// TimeSpan
-		if(value instanceof TimeSpan) {
-			return ((TimeSpan)value).castToDoubleValue(0);
-		}
 		ClassLoader cl = value.getClass().getClassLoader();
+
 		if(cl!=null && cl!=ClassLoader.getSystemClassLoader()) {
 			try {
-				return "lucee-serialized:"+SerializerUtil.serialize(value);
+				return "lucee-serialized:"+SerializerUtil.serialize((Serializable) value);
 			}
-			catch (Exception e) {}
+			catch (Exception e) {
+				// print.e("Could not serialize item \"" + value.toString() + "\" in toJVM()");
+				// print.e(e);
+			}
 		}
-		
 		
 		
 		return value;
@@ -88,7 +94,6 @@ public class TypeUtil {
 	
 	public static Object toCFML(Object value) {
 		if(value==null) return null;
-		//print.e("cfml:"+value.getClass().getName());
 		
 		if(value instanceof LinkedList) {
 			Iterator it = ((LinkedList)value).iterator();
@@ -111,7 +116,10 @@ public class TypeUtil {
 			try {
 				return SerializerUtil.evaluate(((String)value).substring(17));
 			}
-			catch (Exception e) {}
+			catch (Exception e) {
+				// print.e("Could not deserialize item \"" + value.toString() + "\" in toCFML()");
+				// print.e(e);
+			}
 		}
 		return value;
 	}

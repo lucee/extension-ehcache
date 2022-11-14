@@ -81,7 +81,7 @@ public class EHCacheEntry implements CacheEntry {
 
 	@Override
 	public Object getValue() {
-		return cache.isDistributed?TypeUtil.toCFML(element.getObjectValue()):element.getObjectValue();
+		return cache.isSerialized?TypeUtil.toCFML(element.getObjectValue()):element.getObjectValue();
 	}
 
 	public void setElement(Element element) {

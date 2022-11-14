@@ -19,7 +19,6 @@
 package org.lucee.extension.cache.eh.util;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 
 import lucee.commons.io.cache.Cache;
 import lucee.commons.io.cache.CacheEntry;
@@ -109,8 +108,7 @@ public class CacheUtil {
 
 	public static ClassLoader getClassLoaderEnv(Config config) throws PageException {
 		try {
-			Method m = config.getClass().getMethod("getClassLoaderEnv", new Class[0]);
-			return (ClassLoader) m.invoke(config, new Object[0]);
+			return new EHCacheClassLoader(config);
 		}
 		catch (Exception e) {
 			throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
