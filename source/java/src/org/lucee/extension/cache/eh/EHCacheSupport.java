@@ -66,12 +66,12 @@ public abstract class EHCacheSupport extends CacheSupport implements Cache {
 		Struct info=super.getCustomInfo();
 		// custom
 		CacheConfiguration conf = getCache().getCacheConfiguration();
-		info.setEL("disk_expiry_thread_interval", new Double(conf.getDiskExpiryThreadIntervalSeconds()));
-		info.setEL("disk_spool_buffer_size", new Double(conf.getDiskSpoolBufferSizeMB()*1024*1024));
-		info.setEL("max_elements_in_memory", new Double(conf.getMaxElementsInMemory()));
-		info.setEL("max_elements_on_disk", new Double(conf.getMaxElementsOnDisk()));
-		info.setEL("time_to_idle", new Double(conf.getTimeToIdleSeconds()));
-		info.setEL("time_to_live", new Double(conf.getTimeToLiveSeconds()));
+		info.setEL("disk_expiry_thread_interval", Double.valueOf(conf.getDiskExpiryThreadIntervalSeconds()));
+		info.setEL("disk_spool_buffer_size", Double.valueOf(conf.getDiskSpoolBufferSizeMB()*1024*1024));
+		info.setEL("max_elements_in_memory", Double.valueOf(conf.getMaxElementsInMemory()));
+		info.setEL("max_elements_on_disk", Double.valueOf(conf.getMaxElementsOnDisk()));
+		info.setEL("time_to_idle", Double.valueOf(conf.getTimeToIdleSeconds()));
+		info.setEL("time_to_live", Double.valueOf(conf.getTimeToLiveSeconds()));
 		info.setEL("name", conf.getName());
 		return info;
 	}

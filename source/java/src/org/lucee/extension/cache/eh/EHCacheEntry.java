@@ -97,7 +97,7 @@ public class EHCacheEntry implements CacheEntry {
 	@Override
 	public Struct getCustomInfo() {
 		Struct info=CacheUtil.getInfo(this);
-		info.setEL("version", new Double(element.getVersion()));
+		info.setEL("version", Double.valueOf(element.getVersion()));
 		return info;
 	}
 }
