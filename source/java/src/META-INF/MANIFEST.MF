@@ -7,4 +7,4 @@ Export-Package: org.lucee.extension.cache,
  org.lucee.extension.cache.eh.remote.soap,
  org.lucee.extension.cache.eh.util
 Bundle-ManifestVersion: 2
-Require-Bundle: org.lucee.ehcache;bundle-version=2.10.3
+Require-Bundle: net.sf.ehcache;bundle-version=2.10.9.2
