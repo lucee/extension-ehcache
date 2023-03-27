@@ -1,10 +1,7 @@
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache,cache" {
- 	
+
 	function beforeAll() {
 		variables.postgres = server.getDatasource("postgres");
-
-		systemOutput("variables.postgres=#serializeJSON(variables.postgres)#",1,1);
-		systemOutput("notHasPostgres=#notHasPostgres()#",1,1);
 
 		if( structCount(postgres) ) {
 			// define datasource
@@ -12,14 +9,14 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache,cache" {
 		}
 	}
 
-	public function testCachePutEHCache() {
+	public function testCachePutEHCache() skip="notHasPostgres" {
 		createEHCache();
 		testCachePut();
 	}
 
 	private function testCachePut() localMode="modern"  {
-		var jsonbColl = createObject("java", "org.postgresql.util.PGobject");
-		jsonbColl.setValue('{"a": "aab"}');
+		var res = queryExecute('SELECT ''{"a" : "aab"}''::jsonb AS result');
+		var jsonbColl = res.result[1];
 
 		cachePut("def",jsonbColl,createTimespan(0,0,0,30),createTimespan(0,0,0,30),"testCache4429")
 		var cachedval = cacheGet(id ="def", region="testCache4429")
