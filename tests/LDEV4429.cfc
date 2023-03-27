@@ -12,7 +12,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache,cache" {
 		}
 	}
 
-	public function testCachePutEHCache() skip="notHasPostgres" {
+	public function testCachePutEHCache() {
 		createEHCache();
 		testCachePut();
 	}
