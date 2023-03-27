@@ -3,6 +3,9 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache,cache" {
 	function beforeAll() {
 		variables.postgres = server.getDatasource("postgres");
 
+		systemOutput("variables.postgres=#serializeJSON(variables.postgres)#",1,1);
+		systemOutput("notHasPostgres=#notHasPostgres()#",1,1);
+
 		if( structCount(postgres) ) {
 			// define datasource
 			application name="LDEV-4429" action="update"  datasource=postgres;
