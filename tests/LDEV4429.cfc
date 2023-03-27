@@ -18,8 +18,8 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache,cache" {
 	}
 
 	private function testCachePut() localMode="modern"  {
-		var res = queryExecute('SELECT ''{"a" : "aab"}''::jsonb AS result');
-		var jsonbColl = res.result[1];
+		var jsonbColl = createObject("java", "org.postgresql.util.PGobject");
+		jsonbColl.setValue('{"a": "aab"}');
 
 		cachePut("def",jsonbColl,createTimespan(0,0,0,30),createTimespan(0,0,0,30),"testCache4429")
 		var cachedval = cacheGet(id ="def", region="testCache4429")
