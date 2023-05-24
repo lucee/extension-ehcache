@@ -55,4 +55,5 @@ jobs:
         extensionDir: ${{ github.workspace }}/dist
       env:
         testLabels: ehcache,cache
+        testAdditional: ${{ github.workspace }}/tests
 
