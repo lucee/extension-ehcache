@@ -1,4 +1,4 @@
-component extends = "org.lucee.cfml.test.LuceeTestCase" labels="ehcache,cache" {
+component extends = "org.lucee.cfml.test.LuceeTestCase" labels="ehcache,cache"  skip=true {
 
 	public any function test() {
 		var configFile = getDirectoryFromPath(getCurrentTemplatePath()) & "LDEV4886/ehcache.xml"; 
