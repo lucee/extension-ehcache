@@ -1,4 +1,4 @@
-component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache,cache" {
+component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache" {
 
 	public function testCachePutEHCache() {
 		createEHCache();
