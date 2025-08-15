@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project default="clean" basedir="." name="formtag-extension">
+<project default="clean" basedir="." name="ehcache-extension">
 	<description>
-        Build Form Extension
+        Build EHCache Extension
     </description>
     <!-- set global properties for this build -->
-  
-  <property file="build.properties"/>
 
   <property name="lib" location="source/java/libs"/>
   <property name="src" location="source/java/src"/>
@@ -13,88 +11,7 @@
   <property name="srcImg" location="source/images"/>
   <property name="temp" location="temp"/>
   <property name="build" location="build"/>
-  <property name="dist"  location="dist"/>
-
-
-  
-  <buildnumber file="build.number"/>
-
-  <scriptdef name="pack200" language="javascript">
-     <attribute name="directory" />
-     <![CDATA[
-      
-
-     var dir = new java.io.File(attributes.get("directory"));
-     var files=dir.listFiles();
-
-      // prepare Pack200
-      var packer = java.util.jar.Pack200.newPacker();
-
-      // Initialize the state by setting the desired properties
-      var p = packer.properties();
-      p.put(java.util.jar.Pack200.Packer.EFFORT, "7");  // default is "5"
-      p.put(java.util.jar.Pack200.Packer.SEGMENT_LIMIT, "-1");
-      p.put(java.util.jar.Pack200.Packer.KEEP_FILE_ORDER, java.util.jar.Pack200.Packer.FALSE);
-      p.put(java.util.jar.Pack200.Packer.MODIFICATION_TIME, java.util.jar.Pack200.Packer.LATEST);
-      p.put(java.util.jar.Pack200.Packer.DEFLATE_HINT, java.util.jar.Pack200.Packer.FALSE);
-      //p.put(java.util.jar.Pack200.Packer.CODE_ATTRIBUTE_PFX+"LineNumberTable", java.util.jar.Pack200.Packer.STRIP);
-      p.put(java.util.jar.Pack200.Packer.UNKNOWN_ATTRIBUTE, java.util.jar.Pack200.Packer.ERROR);
-    
-      for(var i=0;i<files.length;i++) {
-        var trgJar=files[i];
-        if(!trgJar.getName().endsWith(".jar")) continue;
-
-        // jar -> pack200
-
-        var name=trgJar.getName();
-        var index=name.lastIndexOf(".jar");
-        name=name.substring(0,index)+".pack.gz";
-        var trgPack=new java.io.File( files[i].getParentFile() , name);
-
-        var is=null;
-        var os=null;
-        
-        try {
-          var echo = project.createTask( "echo" );
-          echo.setMessage("- pack "+name);
-          echo.perform();
-
-          is = new java.util.jar.JarInputStream(new java.io.FileInputStream(trgJar));
-          os=new java.util.zip.GZIPOutputStream(new java.io.FileOutputStream(trgPack));
-          packer.pack(is, os);
-          trgJar.delete();
-
-        }
-        finally {
-          if(is!=null) {
-            try {is.close();} catch(e) {}
-          }
-          if(os!=null) {
-            try {os.close();} catch(e) {}
-          }
-        } 
-      }
-     ]]>
-  </scriptdef>
-
-
-
-  <scriptdef name="replace" language="javascript">
-     <attribute name="haystack" />
-     <attribute name="needle" />
-     <attribute name="repl" />
-     <attribute name="property" />
-     <![CDATA[
-      var text = attributes.get("haystack");
-      var needle = attributes.get("needle");
-      var repl = attributes.get("repl");
-      text=text.trim();
-
-      var regex = new RegExp(needle,'g');
-      text=text.replace(regex,repl);
-      project.setProperty(attributes.get("property"), text);
-     ]]>
-  </scriptdef>
+  <property name="dist"  location="target"/>
 
   <path id="classpath">
     <fileset dir="${lib}">
@@ -133,14 +50,14 @@
 
     <echo file="${dist}/extension/META-INF/MANIFEST.MF">Manifest-Version: 1.0
 Built-Date: ${NOW}
-version: "${bundleversion}${build.number}${bundleversionappendix}"
+version: "${bundleversion}"
 id: "${id}"
 name: "${label}"
 description: "${description}"
 lucee-core-version: "5.0.0.230"
 start-bundles: false
 release-type: server
-cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bundleversion}${build.number}${bundleversionappendix}'}]"
+cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bundleversion}'}]"
 </echo>
   </target>
   
@@ -149,7 +66,7 @@ cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bun
   <target name="compile" depends="copy"
         description="compile the source " >
     <!-- Compile ACF-Infinspan source -->
-    <javac srcdir="${temp}" target="1.8" source="1.8" destdir="${build}" debug="true" debuglevel="lines,vars,source">
+    <javac srcdir="${temp}" target="11" source="11" destdir="${build}" debug="true" debuglevel="lines,vars,source">
       <classpath refid="classpath" />
     </javac>
   </target>
@@ -160,30 +77,51 @@ cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bun
  
     <!-- Put everything in ${build} into .jar file -->
     <jar 
-    	jarfile="${dist}/extension/jars/${filename}-${bundleversion}${build.number}${bundleversionappendix}.jar" basedir="${build}"  manifest="${src}/META-INF/MANIFEST.MF">
+    	jarfile="${dist}/extension/jars/${bundlename}-${bundleversion}.jar" basedir="${build}"  manifest="${src}/META-INF/MANIFEST.MF">
       <manifest>
-        <attribute name="Bundle-Version" value="${bundleversion}${build.number}${bundleversionappendix}"/>
+        <attribute name="Bundle-Version" value="${bundleversion}"/>
         <attribute name="Built-Date" value="${NOW}"/>
         <attribute name="Bundle-SymbolicName" value="${bundlename}"/>
 
       </manifest>
     </jar>
 
-    <!-- copy the context necessary -->
+    <!-- copy EHCache.cfc -->
     <copy todir="${dist}/extension/context">
       <fileset dir="${srcCFML}/context">
         <include name="**/*.*"/>
       </fileset>
     </copy>
 
-    <!-- copy the flds necessary -->
-    <loadfile property="c1" srcFile="${srcCFML}/context/admin/cdriver/EHCache.cfc" />
-    <replace haystack="${c1}" needle="{class}" repl="${class}" property="c2"/>
-    <replace haystack="${c2}" needle="{label}" repl="${label}" property="c3"/>
-    <replace haystack="${c3}" needle="{desc}" repl="${description}" property="c4"/>
-    <replace haystack="${c4}" needle="{bundlename}" repl="${bundlename}" property="c5"/>
-    <replace haystack="${c5}" needle="{bundleversion}" repl="${bundleversion}${build.number}${bundleversionappendix}" property="c6"/>
-    <echo message="${c6}" file="${dist}/extension/context/admin/cdriver/EHCache.cfc"/>
+    <copy 
+      file="${srcCFML}/context/admin/cdriver/EHCache.cfc" 
+      tofile="${dist}/extension/context/admin/cdriver/EHCache.cfc" />
+
+    <replaceregexp 
+      file="${dist}/extension/context/admin/cdriver/EHCache.cfc" 
+      match="\{class\}" 
+      replace="${class}" 
+      byline="true"/>
+    <replaceregexp 
+      file="${dist}/extension/context/admin/cdriver/EHCache.cfc" 
+      match="\{label\}" 
+      replace="${label}" 
+      byline="true"/>
+    <replaceregexp 
+      file="${dist}/extension/context/admin/cdriver/EHCache.cfc" 
+      match="\{desc\}" 
+      replace="${description}" 
+      byline="true"/>
+    <replaceregexp 
+      file="${dist}/extension/context/admin/cdriver/EHCache.cfc" 
+      match="\{bundlename\}" 
+      replace="${bundlename}" 
+      byline="true"/>
+    <replaceregexp 
+      file="${dist}/extension/context/admin/cdriver/EHCache.cfc" 
+      match="\{bundleversion\}" 
+      replace="${bundleversion}" 
+      byline="true"/>
 
 
 
@@ -201,10 +139,7 @@ cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bun
       </fileset>
     </copy>
 
-    <!-- pack200 the jars
-    <pack200 directory="${dist}/extension/jars"/> -->
-
-
+   
     <!-- copy the logo -->
     <copy todir="${dist}/extension/META-INF">
       <fileset dir="${srcImg}/">
@@ -215,7 +150,7 @@ cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bun
 
 
     <!-- Zip everything  -->
-     <zip destfile="${dist}/${filename}-${bundleversion}${build.number}${bundleversionappendix}.lex">
+     <zip destfile="${dist}/${filename}-${bundleversion}.lex">
         <zipfileset dir="${dist}/extension"/>
     </zip>
 		
