@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>ehcache-extension</artifactId>
-    <version>2.10.0.38</version>
+    <version>2.10.0.39</version>
     <packaging>pom</packaging>
     <name>EHCache Extension</name>
 
@@ -122,6 +122,8 @@
                                     <property name="bundlename" value="${bundlename}"/>
                                     <property name="class" value="${class}"/>
                                     <property name="filename" value="${project.artifactId}"/>
+                                    <property name="groupId" value="${project.groupId}"/>
+                                    <property name="artifactId" value="${project.artifactId}"/>
                                     <property name="id" value="${id}"/>
                                     <property name="luceeCoreVersion" value="${luceeCoreVersion}"/>
                                     <property name="releaseType" value="${releaseType}"/>
