@@ -104,15 +104,10 @@
 	
 	<cffunction name="getClass" returntype="string">
     	<cfreturn "{class}">
+    </cffunction>	
+	<cffunction name="getMaven" returntype="string">
+    	<cfreturn "{maven}">
     </cffunction>
-    <!---
-	<cffunction name="getBundleName" returntype="string">
-    	<cfreturn "{bundlename}">
-    </cffunction>
-	<cffunction name="getBundleVersion" returntype="string">
-    	<cfreturn "{bundleversion}">
-    </cffunction>
-    --->
     
 	<cffunction name="getLabel" returntype="string">
     	<cfreturn "{label}">
