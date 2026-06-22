@@ -4,9 +4,6 @@
         Build EHCache Extension
     </description>
 
-  <!-- default goal when not passed by Maven (e.g. local mvn package run) -->
-  <property name="maven.goal" value="install"/>
-
   <property name="srcCFML" location="source/CFML/src"/>
   <property name="srcImg" location="source/images"/>
   <property name="temp" location="temp"/>
@@ -30,7 +27,7 @@
       <equals arg1="${maven.goal}" arg2="deploy"/>
     </condition>
 
-    <!-- Check if artifact already exists in Maven Central -->
+    <!-- Check if artifact already exists in Maven Central (only relevant when deploying) -->
     <condition property="artifact.exists">
       <and>
         <equals arg1="${is.deploy}" arg2="true"/>
@@ -38,11 +35,18 @@
       </and>
     </condition>
 
-    <!-- Set effective goal based on whether artifact exists -->
-    <!-- if artifact already on Central, downgrade to install to avoid re-deploying -->
-    <condition property="effective.goal" value="install" else="${maven.goal}">
-      <istrue value="${artifact.exists}"/>
+    <!--
+      effective.goal logic:
+      - deploy requested AND artifact not yet on Central → deploy
+      - anything else (package, install, unresolved ${goal}, artifact already exists) → install
+    -->
+    <condition property="effective.goal" value="deploy">
+      <and>
+        <equals arg1="${is.deploy}" arg2="true"/>
+        <not><istrue value="${artifact.exists}"/></not>
+      </and>
     </condition>
+    <property name="effective.goal" value="install"/>
 
     <echo>goal:${maven.goal}</echo>
     <echo>effective.goal:${effective.goal}</echo>
