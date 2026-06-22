@@ -4,11 +4,6 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-    inputs:
-      deploy:
-        description: 'Deploy to Maven Central'
-        type: boolean
-        default: false
 
 jobs:
   build:
@@ -109,7 +104,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [build, test]
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy
+    if: always() && needs.build.result == 'success' && needs.test.result == 'success'
     steps:
       - uses: actions/checkout@v6
 
@@ -141,8 +136,11 @@ jobs:
         run: |
           if [[ "$VERSION" == *-SNAPSHOT ]]; then
             echo "------- Maven Deploy snapshot -------";
-            mvn -B -e clean deploy --settings maven-settings.xml
+            mvn -B -e clean deploy -Dgoal=deploy --settings maven-settings.xml
+          elif [[ "$VERSION" == *-ALPHA ]]; then
+            echo "------- Maven Install alpha (no deploy) -------";
+            mvn -B -e clean install -Dgoal=install --settings maven-settings.xml
           else
             echo "------- Maven Deploy release -------";
-            mvn -B -e clean deploy -DperformRelease=true --settings maven-settings.xml
+            mvn -B -e clean deploy -Dgoal=deploy -DperformRelease=true --settings maven-settings.xml
           fi
