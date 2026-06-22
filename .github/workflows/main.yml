@@ -9,10 +9,6 @@ on:
         description: 'Deploy to Maven Central'
         type: boolean
         default: false
-      luceeVersions:
-        description: 'JSON array of Lucee versions to test'
-        required: false
-        default: '[ "6/snapshot/light", "7.0/snapshot/light", "7.1/snapshot/light" ]'
 
 jobs:
   build:
@@ -55,10 +51,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: build
+    env:
+      LUCEE_TEST_VERSIONS_7: ${{ vars.LUCEE_TEST_VERSIONS_7 }}
     strategy:
       fail-fast: false
       matrix:
-        lucee: ${{ fromJSON(inputs.luceeVersions || '["6/snapshot/light", "7.0/snapshot/light", "7.1/snapshot/light"]') }}
+        lucee: ${{ fromJSON(vars.LUCEE_TEST_VERSIONS_7) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -87,13 +85,15 @@ jobs:
         with:
           repository: lucee/lucee
           path: lucee
+          ref: ${{ matrix.lucee.branch }}
 
       - name: Run Lucee Test Suite
         uses: lucee/script-runner@main
         with:
           webroot: ${{ github.workspace }}/lucee/test
           execute: /bootstrap-tests.cfm
-          luceeVersion: ${{ matrix.lucee }}
+          luceeVersion: ${{ matrix.lucee.version }}
+          luceeVersionQuery: ${{ matrix.lucee.query }}
           extensionDir: ${{ github.workspace }}/target
         env:
           testLabels: ehcache
