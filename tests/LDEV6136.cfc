@@ -1,5 +1,5 @@
 <cfscript>
-component extends="org.lucee.cfml.test.LuceeTestCase" labels="cache,ehCache" {
+component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache" {
 
 	function run( testResults, testBox ) {
 
