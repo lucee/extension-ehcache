@@ -6,14 +6,16 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache" {
 		describe( "LDEV-6136 extension bundle name backwards compat", function() {
 
 
-			it( "works with new maven name: org.lucee:ehcache", function() {
-				var cacheName = "ldev6136new";
+			// Lucee 8 is jakarta based, the old 2.10.0.39 OSGi bundle imports javax.transaction (LDEV-6613)
+			it( title="works with old bundle name: org.lucee.ehcache.extension", skip=isLucee8(), body=function() {
+				var cacheName = "ldev6136old";
 				application action="update"
 					caches="#{ "#cacheName#": cacheConfigFromBundle( "org.lucee.ehcache.extension" ,"2.10.0.39") }#";
 				cachePut( id: "testNew", value: "new", cacheName: cacheName );
 				expect( cacheGet( id: "testNew", cacheName: cacheName ) ).toBe( "new" );
 			});
-			it( "works with new maven name: org.lucee:ehcache", function() {
+			// Lucee 8 resolves a version-less coordinate to the latest Central release (LDEV-6612)
+			it( title="works with new maven name: org.lucee:ehcache", skip=isLucee8(), body=function() {
 				var cacheName = "ldev6136new";
 				application action="update"
 					caches="#{ "#cacheName#": cacheConfigFromMaven( "org.lucee:ehcache" ) }#";
@@ -45,5 +47,9 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache" {
 		};
 	}
 
+
+	private boolean function isLucee8() {
+		return listFirst( server.lucee.version, "." ) >= 8;
+	}
 }
 </cfscript>

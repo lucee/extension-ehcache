@@ -5,7 +5,7 @@
 
 	variables.conn={
 		class: 'org.lucee.extension.cache.eh.EHCache'
-		, maven: 'org.lucee:ehcache'
+		, maven: ehcacheMaven()
 		, storage: true
 		, custom:
 			{ "bootstrapAsynchronously":"true", 
@@ -60,5 +60,15 @@
 	
 	public function onRequestStart() {
 		setting requesttimeout=20;
+	}
+
+	// LDEV-6613 use the installed extension version: on Lucee 8 a maven coordinate without
+	// a version resolves the latest Central release (LDEV-6612), not the installed extension
+	private string function ehcacheMaven() {
+		var q = extensionList();
+		loop query=q {
+			if ( q.id == "87FE44E5-179C-43A3-A87B3D38BEF4652E" ) return "org.lucee:ehcache:" & q.version;
+		}
+		return "org.lucee:ehcache";
 	}
 }
