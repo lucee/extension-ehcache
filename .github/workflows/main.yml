@@ -42,10 +42,15 @@ jobs:
         id: lucee-matrix
         env:
           TEST_VERSIONS: ${{ vars.LUCEE_TEST_VERSIONS_7 }}
+          # only used when the repo variable isn't available (fork PRs); update when a new Lucee line (e.g. 9.0) should be tested
           FALLBACK_LINES: "7.0 7.1 8.0"
         run: |
           set -euo pipefail
-          if [[ -n "${TEST_VERSIONS// }" ]] && echo "$TEST_VERSIONS" | jq -e 'type == "array" and length > 0' > /dev/null; then
+          if [[ -n "${TEST_VERSIONS//[[:space:]]/}" ]]; then
+            if ! echo "$TEST_VERSIONS" | jq -e 'type == "array" and length > 0' > /dev/null 2>&1; then
+              echo "::error::vars.LUCEE_TEST_VERSIONS_7 is not a non-empty JSON array"
+              exit 1
+            fi
             echo "Using vars.LUCEE_TEST_VERSIONS_7"
             MATRIX=$(echo "$TEST_VERSIONS" | jq -c '.')
           else
